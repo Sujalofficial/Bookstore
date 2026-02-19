@@ -1,0 +1,18 @@
+/* --- CHART SECTION --- */
+.chart-section {
+  margin-bottom: 40px;
+}
+
+.chart-container {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  border: 1px solid #f0f0f0;
+  height: 350px; /* Graph ki height fix karo */
+}
+
+/* Tooltip Customization (Recharts ke liye) */
+.recharts-tooltip-cursor {
+  fill: rgba(0, 0, 0, 0.05);
+}
