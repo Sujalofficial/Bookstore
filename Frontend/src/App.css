@@ -1028,25 +1028,13 @@ p { font-size: 0.9rem; color: #fff; margin-bottom: 20px; }
 }
 
 /* ===== FORM TEXT ===== */
-.form-title {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.form-subtitle {
-  font-size: 14px;
-  margin-bottom: 25px;
-  color: #6c757d;
-}
-
 /* ===== INPUT STYLE (Floating Label) ===== */
-.input-group {
+.register-page .input-group {
   position: relative;
   margin-bottom: 20px;
 }
 
-.input-group input {
+.register-page .input-group input {
   width: 100%;
   padding: 14px 12px;
   border-radius: 8px;
@@ -1057,7 +1045,7 @@ p { font-size: 0.9rem; color: #fff; margin-bottom: 20px; }
   background: transparent;
 }
 
-.input-group label {
+.register-page .input-group label {
   position: absolute;
   left: 12px;
   top: 14px;
@@ -1067,61 +1055,17 @@ p { font-size: 0.9rem; color: #fff; margin-bottom: 20px; }
   transition: 0.3s;
 }
 
-.input-group input:focus,
-.input-group input:not(:placeholder-shown) {
+.register-page .input-group input:focus,
+.register-page .input-group input:not(:placeholder-shown) {
   border-color: #4e73df;
 }
 
-.input-group input:focus + label,
-.input-group input:not(:placeholder-shown) + label {
+.register-page .input-group input:focus + label,
+.register-page .input-group input:not(:placeholder-shown) + label {
   top: -8px;
   left: 10px;
   font-size: 12px;
   background: white;
   padding: 0 5px;
   color: #4e73df;
-}
-
-/* ===== BUTTON ===== */
-.auth-btn {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  background: linear-gradient(135deg, #4e73df, #224abe);
-  color: white;
-  font-weight: 500;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.auth-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(78,115,223,0.3);
-}
-
-/* ===== ERROR ===== */
-.error-message {
-  background: #ffe5e5;
-  color: #d9534f;
-  padding: 10px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-  font-size: 14px;
-}
-
-/* ===== FOOTER LINK ===== */
-.form-footer {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.link-text {
-  color: #4e73df;
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.link-text:hover {
-  text-decoration: underline;
 }
