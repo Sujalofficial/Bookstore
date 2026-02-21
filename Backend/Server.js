@@ -13,7 +13,7 @@ app.use(express.json());
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://bookstore-svbg.onrender.com',
+    'https://bookstore-1bookstore-frontend.onrender.com',
     process.env.FRONTEND_URL  // optional override via env var
 ].filter(Boolean);
 
