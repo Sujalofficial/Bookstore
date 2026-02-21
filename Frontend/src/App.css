@@ -404,7 +404,7 @@ td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
 .icon { font-size: 3rem; margin-bottom: 15px; }
 
 h3 { margin: 10px 0; color: #333; }
-p { font-size: 0.9rem; color: #777; margin-bottom: 20px; }
+p { font-size: 0.9rem; color: #fff; margin-bottom: 20px; }
 
 /* Buttons */
 .action-btn {
