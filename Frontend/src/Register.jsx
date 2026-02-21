@@ -36,66 +36,73 @@ function Register() {
   };
 
   return (
-    <div className="login-page">
-      {/* LEFT SIDE: Visual Section */}
-      <div className="login-visual register-visual">
+    <div className="auth-page">
+      
+      {/* LEFT SIDE */}
+      <div className="auth-visual register-visual">
+        <div className="visual-overlay"></div>
         <div className="visual-content">
-          <h2>Join Our Community!</h2>
-          <p>Create an account to access your personal digital library and start your reading journey today.</p>
+          <h2>Start Your Reading Journey 📚</h2>
+          <p>
+            Join thousands of readers managing their personal digital library.
+            Discover, organize and track your favorite books in one place.
+          </p>
         </div>
       </div>
 
-      {/* RIGHT SIDE: Form Section */}
-      <div className="login-form-container">
-        <div className="form-wrapper">
-          <h2 className="form-title">Create Account</h2>
-          <p className="form-subtitle">Please fill in your details</p>
+      {/* RIGHT SIDE */}
+      <div className="auth-form-container">
+        <div className="form-wrapper glass-card">
 
-          {/* Error Message */}
+          <h2 className="form-title">Create Account</h2>
+          <p className="form-subtitle">Let’s get you started</p>
+
           {error && <div className="error-message">⚠️ {error}</div>}
 
           <form onSubmit={handleSubmit}>
+            
             <div className="input-group">
-              <label>Full Name</label>
               <input 
                 type="text" 
-                placeholder="John Doe" 
+                placeholder=" " 
                 onChange={(e) => setFormData({...formData, name: e.target.value})} 
                 required 
               />
+              <label>Full Name</label>
             </div>
 
             <div className="input-group">
-              <label>Email Address</label>
               <input 
                 type="email" 
-                placeholder="john@example.com" 
+                placeholder=" " 
                 onChange={(e) => setFormData({...formData, email: e.target.value})} 
                 required 
               />
+              <label>Email Address</label>
             </div>
 
             <div className="input-group">
-              <label>Password</label>
               <input 
                 type="password" 
-                placeholder="••••••••" 
+                placeholder=" " 
                 onChange={(e) => setFormData({...formData, password: e.target.value})} 
                 required 
               />
+              <label>Password</label>
             </div>
 
-            <button type="submit" className="login-btn register-btn" disabled={loading}>
-              {loading ? "Creating account..." : "Sign up"}
+            <button type="submit" className="auth-btn register-btn" disabled={loading}>
+              {loading ? "Creating account..." : "Sign Up"}
             </button>
           </form>
 
-          {/* LOGIN LINK */}
           <div className="form-footer">
-            <p>Already have an account? 
+            <p>
+              Already have an account?
               <NavLink to="/login" className="link-text"> Sign in</NavLink>
             </p>
           </div>
+
         </div>
       </div>
     </div>
