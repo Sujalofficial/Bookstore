@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"; 
 import { useNavigate } from "react-router-dom"; 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import "./AdminDashboard.css"; 
+import "./Admindashboard.css";
 
 export default function Admindashboard() {
   const [adminName, setAdminName] = useState("Admin");
