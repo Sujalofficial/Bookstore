@@ -1,0 +1,36 @@
+services:
+  # =========================================
+  # BACKEND: Express + Node.js API
+  # =========================================
+  - type: web
+    name: bookstore-backend
+    env: node
+    rootDir: Backend
+    buildCommand: npm install
+    startCommand: node Server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false   # Set this in Render dashboard manually
+      - key: GEMINI_API_KEY
+        sync: false   # Set this in Render dashboard manually
+      - key: FRONTEND_URL
+        value: https://bookstore-frontend.onrender.com
+
+  # =========================================
+  # FRONTEND: React (Vite) Static Site
+  # =========================================
+  - type: web
+    name: bookstore-frontend
+    env: static
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://bookstore-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

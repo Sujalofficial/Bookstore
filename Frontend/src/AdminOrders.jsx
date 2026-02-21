@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./AdminOrders.css"; // CSS file niche hai
+import "./AdminOrders.css";
+import API_URL from "./config";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -17,7 +18,7 @@ export default function AdminOrders() {
     if (!token) return navigate("/adminlogin");
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/orders", {
+      const res = await fetch(`${API_URL}/api/admin/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -39,7 +40,7 @@ export default function AdminOrders() {
   const handleStatusChange = async (id, newStatus) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/orders/${id}`, {
+      const res = await fetch(`${API_URL}/api/admin/orders/${id}`, {
         method: "PUT",
         headers: { 
             "Content-Type": "application/json",

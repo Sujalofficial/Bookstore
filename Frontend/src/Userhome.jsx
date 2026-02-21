@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import './App.css';
+import API_URL from './config';
 
 export default function Userhome() {
     const [books, setBooks] = useState([]); 
@@ -13,7 +14,6 @@ export default function Userhome() {
     const [showAiModal, setShowAiModal] = useState(false);
 
     const navigate = useNavigate();
-    const API_URL = "http://localhost:5000";
     const user = JSON.parse(localStorage.getItem('user')) || { name: "Reader" };
 
     useEffect(() => {

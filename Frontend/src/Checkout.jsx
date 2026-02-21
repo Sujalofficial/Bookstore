@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // ✅ Link add kiya
-import './App.css'; 
+import { useNavigate, Link } from 'react-router-dom';
+import './App.css';
+import API_URL from './config';
 
 function Checkout() {
   const [cartItems, setCartItems] = useState([]);
@@ -18,7 +19,7 @@ function Checkout() {
         return;
       }
       try {
-        const res = await fetch('http://localhost:5000/api/cart/items', {
+        const res = await fetch(`${API_URL}/api/cart/items`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -45,7 +46,7 @@ function Checkout() {
     const token = localStorage.getItem('token');
 
     try {
-      const res = await fetch('http://localhost:5000/api/orders/checkout', {
+      const res = await fetch(`${API_URL}/api/orders/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

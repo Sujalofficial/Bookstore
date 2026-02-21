@@ -9,23 +9,45 @@ const path = require('path');
 
 const app = express();
 app.use(express.json());
-app.use(cors()); 
+// CORS: allow the deployed frontend URL + localhost for local dev
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://bookstore-svbg.onrender.com',
+    process.env.FRONTEND_URL  // optional override via env var
+].filter(Boolean);
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, Postman, server-to-server)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS policy: origin not allowed'));
+    },
+    credentials: true
+}));
+// Security Headers fix karne ke liye
 // Security Headers fix karne ke liye
 app.use((req, res, next) => {
     res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://generativelanguage.googleapis.com; " + // AI API ke liye
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " + // Google Fonts CSS ke liye
-        "font-src 'self' https://fonts.gstatic.com; " + // Fonts file ke liye
-        "imgSrc 'self' data: https:;" // Images ke liye
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://generativelanguage.googleapis.com; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src 'self' https://fonts.gstatic.com; " +
+        "img-src 'self' data: https:; " +   // ✅ FIXED (imgSrc → img-src)
+        "connect-src 'self' https://generativelanguage.googleapis.com https://bookstore-svbg.onrender.com;" // ✅ IMPORTANT for fetch()
     );
     next();
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const MY_SECRET_KEY = "#Sujal7777"; 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/bookstoreDB'; 
+
+// 🔥 BAS YE EK LINE CHANGE KI HAI (Ab ye .env se Atlas ka link lega)
+const MONGO_URI = process.env.MONGO_URI; 
 
 // --- API KEY SETUP ---
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBdRkg1NXB8z_N-Tm2jIsLmJ0HcyjRSjgw";
@@ -33,10 +55,27 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBdRkg1NXB8z_N-Tm2jIs
 // ==========================================
 // 1. CONNECT DB
 // ==========================================
-mongoose.connect(MONGO_URI)
-    .then(() => console.log("✅ Connected to MongoDB..."))
-    .catch(err => console.error("❌ Could not connect to MongoDB:", err));
+// ==========================================
+// 1. CONNECT DB (Atlas Debug Version)
+// ==========================================
 
+
+
+// 🔍 Debug: Check env variable load ho raha hai ya nahi
+console.log("MONGO_URI:", MONGO_URI);
+
+if (!MONGO_URI) {
+    console.error("❌ MONGO_URI is undefined. Check your .env file!");
+    process.exit(1);
+}
+
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log("✅ Connected to MongoDB Atlas 🚀");
+    })
+    .catch((err) => {
+        console.error("❌ Atlas Connection Error:", err.message);
+    });
 // ==========================================
 // 2. DEFINE SCHEMAS & MODELS
 // ==========================================
@@ -102,6 +141,8 @@ const Order = mongoose.model('Order', orderSchema);
 // ==========================================
 // 3. MULTER SETUP
 // ==========================================
+
+
 app.use('/uploads', express.static('uploads'));
 
 const storage = multer.diskStorage({
@@ -245,6 +286,17 @@ app.get('/api/books', async (req, res) => {
         res.json(books);
     } catch (error) {
         res.status(500).json({ error: "Error fetching books" });
+    }
+});
+
+// --- DELETE BOOK (Admin only) ---
+app.delete('/api/books/:id', verifyAdmin, async (req, res) => {
+    try {
+        const deleted = await Book.findByIdAndDelete(req.params.id);
+        if (!deleted) return res.status(404).json({ error: "Book not found" });
+        res.json({ message: "Book deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Could not delete book" });
     }
 });
 
@@ -565,6 +617,60 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ reply: "Network issue! 🌐" });
     }
 });
+// ==========================================
+// ==========================================
+// 🗺️ AI LEARNING ROADMAP ROUTE (Direct Call)
+// ==========================================
+app.post('/api/ai-roadmap', async (req, res) => {
+    try {
+        console.log("➡️ 1. Frontend se request aayi! Goal hai:", req.body.goal); 
 
+        const { goal } = req.body;
+        if (!goal) return res.status(400).json({ error: "Goal missing hai request mein!" });
+
+        const books = await Book.find({}, 'title author category');
+        const inventory = books.map(b => `- ${b.title} (${b.category})`).join("\n");
+        
+        const promptText = `Create a learning path for: "${goal}". Use this inventory:\n${inventory}\nLabel [AVAILABLE] or [EXTERNAL].`;
+        
+        // 🔥 Teri purani API Key backup ke liye wapis add kar di
+        const API_KEY = process.env.GEMINI_API_KEY || "AIzaSyBdRkg1NXB8z_N-Tm2jIsLmJ0HcyjRSjgw";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+        
+        console.log("➡️ 2. Google Gemini ko request bhej rahe hain..."); 
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error("❌ 3. Google API Error:", data.error.message); // Asli error yahan dikhega
+            return res.status(500).json({ error: "Gemini API ne request fail kar di." });
+        }
+        
+        console.log("✅ 4. Roadmap successfully generate ho gaya!"); 
+        res.json({ roadmap: data.candidates?.[0]?.content?.parts?.[0]?.text || "Empty generated" });
+        
+    } catch (error) {
+        console.error("❌ 5. Asli Backend Error:", error.message);
+        res.status(500).json({ error: "Backend code crash ho gaya." });
+    }
+});
+
+// ==========================================
+// STATIC FILES + SPA FALLBACK (for serving React build)
+// ==========================================
+const frontendBuildPath = path.join(__dirname, '../Frontend/dist');
+if (require('fs').existsSync(frontendBuildPath)) {
+    app.use(express.static(frontendBuildPath));
+    // SPA fallback: any route not matched by API returns index.html
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    });
+}
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

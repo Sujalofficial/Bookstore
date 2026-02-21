@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './App.css'; // Ensure CSS is updated below
+import './App.css';
+import API_URL from './config';
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function Profile() {
     const fetchMyOrders = async () => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch("http://localhost:5000/api/orders/my-orders", {
+            const res = await fetch(`${API_URL}/api/orders/my-orders`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();

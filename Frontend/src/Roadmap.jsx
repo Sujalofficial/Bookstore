@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import './App.css'; 
+import './App.css';
+import API_URL from './config';
 
 function Roadmap() {
   const [goal, setGoal] = useState("");
@@ -14,7 +15,7 @@ function Roadmap() {
     setRoadmap(""); // Purana result clear karo
 
     try {
-      const res = await fetch('http://localhost:5000/api/ai-roadmap', {
+      const res = await fetch(`${API_URL}/api/ai-roadmap`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goal })

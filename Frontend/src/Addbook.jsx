@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import API_URL from './config';
 
 export default function Addbook() {
     const [title, setTitle] = useState('');
@@ -20,7 +21,7 @@ export default function Addbook() {
         formData.append('image', image); // Actual file
 
         try {
-            const res = await fetch('http://localhost:5000/api/books', {
+            const res = await fetch(`${API_URL}/api/books`, {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${token}` 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API_URL from './config';
 
 function Adminlogin() {
   const [email, setEmail] = useState('');
@@ -8,7 +9,7 @@ function Adminlogin() {
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5000/login', {
+    const res = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
