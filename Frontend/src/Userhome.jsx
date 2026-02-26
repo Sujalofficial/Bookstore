@@ -143,14 +143,35 @@ export default function Userhome() {
                 
                 <div className="price-section">
                     <span className="price-tag">₹{book.price}</span>
+                    {/* Stock Badge */}
+                    <span style={{
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        padding: '3px 9px',
+                        borderRadius: '20px',
+                        marginLeft: '8px',
+                        background: book.quantity > 0 ? '#e8f5e9' : '#fdecea',
+                        color: book.quantity > 0 ? '#2e7d32' : '#c62828'
+                    }}>
+                        {book.quantity > 0 ? `📦 ${book.quantity} left` : '❌ Out of Stock'}
+                    </span>
                 </div>
                 
                 <div className="button-group">
                     <button className="ai-btn-small" onClick={() => fetchAISummary(book)}>
                         ✨ Insight
                     </button>
-                    <button className="add-btn-main" onClick={() => addToCart(book)}>
-                        Add to Cart
+                    <button 
+                        className="add-btn-main" 
+                        onClick={() => addToCart(book)}
+                        disabled={book.quantity <= 0}
+                        style={book.quantity <= 0 ? {
+                            background: '#ccc',
+                            cursor: 'not-allowed',
+                            opacity: 0.7
+                        } : {}}
+                    >
+                        {book.quantity <= 0 ? 'Out of Stock' : 'Add to Cart'}
                     </button>
                 </div>
             </div>

@@ -87,6 +87,7 @@ export default function ManageBooks() {
               <th>Book Details</th>
               <th>Category</th>
               <th>Price</th>
+              <th>Stock</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -109,6 +110,18 @@ export default function ManageBooks() {
                   <td><span className="cat-badge">{book.category}</span></td>
                   <td className="price-text">₹{book.price}</td>
                   <td>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      background: book.quantity > 0 ? '#e8f5e9' : '#fdecea',
+                      color: book.quantity > 0 ? '#2e7d32' : '#c62828'
+                    }}>
+                      {book.quantity > 0 ? `📦 ${book.quantity} left` : '❌ Out of Stock'}
+                    </span>
+                  </td>
+                  <td>
                     <button 
                         className="delete-action-btn"
                         onClick={() => handleDelete(book._id, book.title)}
@@ -119,7 +132,7 @@ export default function ManageBooks() {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="5" className="no-data">No books found.</td></tr>
+              <tr><td colSpan="6" className="no-data">No books found.</td></tr>
             )}
           </tbody>
         </table>
