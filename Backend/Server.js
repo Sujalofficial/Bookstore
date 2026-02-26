@@ -304,6 +304,21 @@ Instructions:
 // ==========================================
 // 🚀 START SERVER
 // ==========================================
+
+// Health check — so Render doesn't show "Cannot GET /"
+app.get('/', (req, res) => {
+    res.json({ 
+        message: '📚 Bookstore API is running!',
+        status: 'OK',
+        endpoints: '/api/books | /api/cart | /api/orders | /api/chat | /login | /register'
+    });
+});
+
+// 404 catch-all for unknown routes
+app.use((req, res) => {
+    res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📂 Static files served at: http://localhost:${PORT}/uploads`);

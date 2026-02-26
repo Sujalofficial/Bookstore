@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Addbook.css';
+import API_URL from './config';
 
 const CATEGORIES = ['Fiction', 'Self-Help', 'Business', 'Technology', 'Thriller', 'Science', 'History', 'Biography'];
 
@@ -16,7 +17,7 @@ export default function Addbook() {
 
     // Fetch total books count for left panel
     useEffect(() => {
-        fetch('http://localhost:5000/api/books')
+        fetch(`${API_URL}/api/books`)
             .then(r => r.json())
             .then(data => setTotalBooks(data.length))
             .catch(() => {});
@@ -55,7 +56,7 @@ export default function Addbook() {
         if (image) formData.append('image', image);
 
         try {
-            const res = await fetch('http://localhost:5000/api/books', {
+            const res = await fetch(`${API_URL}/api/books`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
