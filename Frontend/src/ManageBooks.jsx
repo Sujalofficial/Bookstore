@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./ManageBooks.css"; // CSS niche hai
+import "./ManageBooks.css";
+import API_URL from "./config";
 
 export default function ManageBooks() {
   const [books, setBooks] = useState([]);
@@ -15,7 +16,7 @@ export default function ManageBooks() {
 
   const fetchBooks = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/books");
+      const res = await fetch(`${API_URL}/api/books`);
       const data = await res.json();
       setBooks(data);
     } catch (err) {
@@ -31,7 +32,7 @@ export default function ManageBooks() {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/books/${id}`, {
+      const res = await fetch(`${API_URL}/api/books/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -97,7 +98,7 @@ export default function ManageBooks() {
                 <tr key={book._id}>
                   <td>
                     <img 
-                        src={`http://localhost:5000${book.image}`} 
+                        src={`${API_URL}${book.image}`} 
                         alt="cover" 
                         className="book-thumb"
                         onError={(e) => e.target.src = 'https://via.placeholder.com/50'}

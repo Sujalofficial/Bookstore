@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import "./ChatBot.css"; // CSS niche hai
+import "./ChatBot.css";
+import API_URL from "./config";
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,7 +28,7 @@ export default function ChatBot() {
 
     try {
       // 2. API Call (Server.js wala route)
-      const res = await fetch("http://localhost:5000/api/chat", {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg.text }),

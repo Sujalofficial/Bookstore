@@ -404,7 +404,7 @@ td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
 .icon { font-size: 3rem; margin-bottom: 15px; }
 
 h3 { margin: 10px 0; color: #333; }
-p { font-size: 0.9rem; color: #777; margin-bottom: 20px; }
+p { font-size: 0.9rem; color: #fff; margin-bottom: 20px; }
 
 /* Buttons */
 .action-btn {
@@ -962,4 +962,110 @@ p { font-size: 0.9rem; color: #777; margin-bottom: 20px; }
 
 .add-btn-main:hover {
     background: #667eea;
+}
+/* ===== AUTH PAGE LAYOUT ===== */
+.auth-page {
+  display: flex;
+  height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* ===== LEFT VISUAL SECTION ===== */
+.auth-visual {
+  flex: 1;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 60px;
+}
+
+.register-visual {
+  background: linear-gradient(135deg, #4e73df, #1cc88a);
+}
+
+.visual-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.2);
+}
+
+.visual-content {
+  position: relative;
+  z-index: 2;
+  max-width: 400px;
+}
+
+.visual-content h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.visual-content p {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ===== RIGHT FORM SECTION ===== */
+.auth-form-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fc;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 40px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+/* ===== FORM TEXT ===== */
+/* ===== INPUT STYLE (Floating Label) ===== */
+.register-page .input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.register-page .input-group input {
+  width: 100%;
+  padding: 14px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+  transition: 0.3s;
+  background: transparent;
+}
+
+.register-page .input-group label {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  color: #888;
+  font-size: 14px;
+  pointer-events: none;
+  transition: 0.3s;
+}
+
+.register-page .input-group input:focus,
+.register-page .input-group input:not(:placeholder-shown) {
+  border-color: #4e73df;
+}
+
+.register-page .input-group input:focus + label,
+.register-page .input-group input:not(:placeholder-shown) + label {
+  top: -8px;
+  left: 10px;
+  font-size: 12px;
+  background: white;
+  padding: 0 5px;
+  color: #4e73df;
 }

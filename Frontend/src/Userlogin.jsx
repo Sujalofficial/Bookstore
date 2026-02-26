@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
-import './App.css'; // CSS file niche hai
+import './App.css';
+import API_URL from './config';
 
 function Userlogin() {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ function Userlogin() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/login', {
+      const res = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -62,25 +63,25 @@ function Userlogin() {
 
           <form onSubmit={handleLogin}>
             
-            <div className="input-group">
-              <label>Email Address</label>
-              <input 
-                type="email" 
-                placeholder="john@example.com" 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-              />
-            </div>
+          <div className="input-group">
+  <label>Email Address</label>
+  <input 
+    type="email"
+    placeholder="john@example.com"
+    onChange={(e) => setEmail(e.target.value)}
+    required
+  />
+</div>
 
-            <div className="input-group">
-              <label>Password</label>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-              />
-            </div>
+<div className="input-group">
+  <label>Password</label>
+  <input 
+    type="password"
+    placeholder="••••••••"
+    onChange={(e) => setPassword(e.target.value)}
+    required
+  />
+</div>
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? "Signing in..." : "Sign in"}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import './App.css';
+import API_URL from './config';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -24,7 +25,7 @@ export default function Users() {
 
     try {
       // Backend ko Token bhejna zaroori hai (Authorization Header)
-      const res = await fetch("http://localhost:5000/api/admin/users", {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -50,7 +51,7 @@ export default function Users() {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+      const res = await fetch(`${API_URL}/api/admin/users/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
