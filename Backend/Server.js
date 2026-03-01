@@ -537,9 +537,9 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 const fetchGemini = async (prompt) => {
     try {
-        // gemini-2.0-flash with v1 API version (supported for free tier)
+        // gemini-1.5-flash with v1 API version (supported for free tier)
         const model = genAI.getGenerativeModel(
-            { model: 'gemini-2.5-flash' },
+            { model: 'gemini-1.5-flash' },
             { apiVersion: 'v1' }
         );
         const result = await model.generateContent(prompt);
@@ -690,7 +690,7 @@ ${inventoryContext}${ordersContext}
         // 5. Initialize model with system instruction & start chat
         //    NOTE: systemInstruction + startChat require v1beta (not v1)
         const model = genAI.getGenerativeModel(
-            { model: 'gemini-2.5-flash', systemInstruction },
+            { model: 'gemini-1.5-flash', systemInstruction },
             { apiVersion: 'v1beta' }
         );
         const chat = model.startChat({ history: geminiHistory });
