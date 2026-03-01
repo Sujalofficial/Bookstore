@@ -427,9 +427,10 @@ ${inventoryContext}${ordersContext}
             }));
 
         // 5. Initialize model with system instruction & start chat
+        //    NOTE: systemInstruction + startChat require v1beta (not v1)
         const model = genAI.getGenerativeModel(
             { model: 'gemini-2.5-flash', systemInstruction },
-            { apiVersion: 'v1' }
+            { apiVersion: 'v1beta' }
         );
         const chat = model.startChat({ history: geminiHistory });
         const result = await chat.sendMessage(message);
