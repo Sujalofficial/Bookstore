@@ -218,16 +218,20 @@ app.post('/api/cart/add', verifyUser, async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Error updating cart" }); }
 });
 
-// Remove single cart item & restore stock
-app.delete('/api/cart/:bookId', verifyUser, async (req, res) => {
+// Remove single cart item by cart-document _id & restore stock
+app.delete('/api/cart/:id', verifyUser, async (req, res) => {
     try {
-        const item = await Cart.findOne({ userId: req.user.userId, bookId: req.params.bookId });
-        if (!item) return res.status(404).json({ error: "Item not in cart" });
-        // Restore stock
-        await Book.findByIdAndUpdate(req.params.bookId, { $inc: { quantity: item.quantity } });
+        // Find by cart doc _id AND userId (security: users can't delete other users' items)
+        const item = await Cart.findOne({ _id: req.params.id, userId: req.user.userId });
+        if (!item) return res.status(404).json({ error: "Cart item not found" });
+        // Restore stock back to book inventory
+        await Book.findByIdAndUpdate(item.bookId, { $inc: { quantity: item.quantity } });
         await item.deleteOne();
         res.json({ message: "Item removed, stock restored" });
-    } catch (e) { res.status(500).json({ error: "Error removing cart item" }); }
+    } catch (e) {
+        console.error("Cart delete error:", e);
+        res.status(500).json({ error: "Error removing cart item" });
+    }
 });
 
 app.get('/api/cart/items', verifyUser, async (req, res) => {

@@ -28,14 +28,26 @@ const Cart = () => {
   };
 
   const removeItem = async (id) => {
-    // Optimistic remove
+    // Optimistic remove — update UI instantly
     setCartItems(prev => prev.filter(i => i._id !== id));
     try {
-      await fetch(`${API_URL}/api/cart/${id}`, { method: "DELETE" });
-    } catch {
-      fetchCart(); // Rollback on error
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/cart/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }, // ← was missing before!
+      });
+      if (!res.ok) {
+        // HTTP error (401, 404, 500) — rollback the UI
+        console.error("Remove failed, rolling back:", res.status);
+        fetchCart();
+      }
+    } catch (err) {
+      // Network error — rollback the UI
+      console.error("Network error removing cart item:", err);
+      fetchCart();
     }
   };
+
 
   const subtotal    = cartItems.reduce((acc, i) => acc + i.price * (i.quantity || 1), 0);
   const platformFee = subtotal > 0 ? 20 : 0;
