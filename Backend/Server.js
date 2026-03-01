@@ -7,6 +7,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
@@ -43,7 +44,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true }, 
     password: { type: String, required: true },
-    isAdmin: { type: Boolean, default: false } 
+    isAdmin: { type: Boolean, default: false },
+    isBlocked: { type: Boolean, default: false }
 }, { timestamps: true }));
 
 // Book Model
@@ -53,7 +55,9 @@ const Book = mongoose.model('Book', new mongoose.Schema({
     price: { type: Number, required: true },
     category: { type: String, required: true },
     image: { type: String },
-    quantity: { type: Number, required: true, default: 0 } // Inventory stock
+    quantity: { type: Number, required: true, default: 0 }, // Inventory stock
+    isVisible: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false }
 }, { timestamps: true }));
 
 // Cart Model
@@ -84,10 +88,19 @@ const Order = mongoose.model('Order', new mongoose.Schema({
     status: { 
         type: String, 
         default: 'Pending', 
-        enum: ['Pending', 'Shipped', 'Delivered', 'Cancelled'] 
+        enum: ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'] 
     },
+    paymentStatus: { type: String, default: 'Paid' },
     orderedAt: { type: Date, default: Date.now }
-}));
+}, { timestamps: true }));
+
+// Admin Log Model
+const AdminLog = mongoose.model('AdminLog', new mongoose.Schema({
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    adminName: { type: String, required: true },
+    action: { type: String, required: true },
+    details: { type: String }
+}, { timestamps: true }));
 
 // ==========================================
 // 3. MULTER & STATIC FILES
@@ -126,10 +139,25 @@ const verifyUser = (req, res, next) => {
 };
 
 // ==========================================
-// 4. AUTH & ADMIN ROUTES
+// 4. RATE LIMITERS & ADMIN LOG HELPER
+// ==========================================
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many login attempts, please try again later.' } });
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { error: 'Too many API requests, please try again later.' } });
+
+// Admin log generator
+const logAdminAction = async (adminId, adminName, action, details) => {
+    try {
+        await AdminLog.create({ adminId, adminName, action, details });
+    } catch (error) {
+        console.error('Failed to log admin action:', error);
+    }
+};
+
+// ==========================================
+// 5. AUTH & REGISTRATION ROUTES
 // ==========================================
 
-app.post('/register', async (req, res) => {
+app.post('/register', authLimiter, async (req, res) => {
     try {
         const { name, email, password } = req.body; 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -138,27 +166,54 @@ app.post('/register', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Registration failed" }); }
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', authLimiter, async (req, res) => {
     try {
         const user = await User.findOne({ email: req.body.email });
         if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
             return res.status(400).json({ error: "Invalid credentials" });
         }
-        const token = jwt.sign({ userId: user._id, isAdmin: user.isAdmin }, MY_SECRET_KEY, { expiresIn: '1d' });
+        if (user.isBlocked) {
+            return res.status(403).json({ error: "Your account is blocked. Please contact support." });
+        }
+        const token = jwt.sign({ userId: user._id, isAdmin: user.isAdmin, name: user.name }, MY_SECRET_KEY, { expiresIn: '1d' });
         res.json({ token, user: { name: user.name, isAdmin: user.isAdmin } });
     } catch (error) { res.status(500).json({ error: "Login error" }); }
 });
 
+// Apply API Limiter to all API routes
+app.use('/api', apiLimiter);
+
 // ==========================================
-// 5. BOOK & CART ROUTES
+// 6. BOOK & CART ROUTES
 // ==========================================
 
+
 app.get('/api/books', async (req, res) => {
-    const books = await Book.find().sort({ createdAt: -1 });
+    // Users only see visible & non-deleted books
+    const books = await Book.find({ isDeleted: false, isVisible: true }).sort({ createdAt: -1 });
     res.json(books);
 });
 
-app.post('/api/books', upload.single('image'), async (req, res) => {
+// GET /api/admin/books - With pagination, filtering, sorting
+app.get('/api/admin/books', verifyAdmin, async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', category = '', sort = 'createdAt' } = req.query;
+        const query = { isDeleted: false };
+        if (search) query.title = { $regex: search, $options: 'i' };
+        if (category) query.category = category;
+
+        const books = await Book.find(query)
+            .sort({ [sort]: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .lean();
+            
+        const total = await Book.countDocuments(query);
+        res.json({ books, total, pages: Math.ceil(total / limit) });
+    } catch (err) { res.status(500).json({ error: "Failed to fetch books" }); }
+});
+
+app.post('/api/books', verifyAdmin, upload.single('image'), async (req, res) => {
     try {
         const bookData = { 
             ...req.body, 
@@ -166,14 +221,30 @@ app.post('/api/books', upload.single('image'), async (req, res) => {
             quantity: parseInt(req.body.quantity) || 0
         };
         const newBook = await Book.create(bookData);
+        await logAdminAction(req.user.userId, req.user.name, 'CREATED_BOOK', `Added product: ${newBook.title}`);
         res.status(201).json(newBook);
     } catch (e) { res.status(500).json("Error adding book"); }
 });
 
-// Delete a book (Admin Only)
+// Full update book (Admin Only)
+app.put('/api/books/:id', verifyAdmin, upload.single('image'), async (req, res) => {
+    try {
+        const bookData = { ...req.body };
+        if (req.file) bookData.image = `/uploads/${req.file.filename}`;
+        if (req.body.quantity) bookData.quantity = parseInt(req.body.quantity);
+        
+        const updated = await Book.findByIdAndUpdate(req.params.id, bookData, { new: true });
+        if (!updated) return res.status(404).json({ error: "Book not found" });
+        await logAdminAction(req.user.userId, req.user.name, 'UPDATED_BOOK', `Edited product: ${updated.title}`);
+        res.json({ message: "Book updated successfully", book: updated });
+    } catch (e) { res.status(500).json({ error: "Error updating book" }); }
+});
+
+// Soft Delete a book (Admin Only)
 app.delete('/api/books/:id', verifyAdmin, async (req, res) => {
     try {
-        await Book.findByIdAndDelete(req.params.id);
+        const book = await Book.findByIdAndUpdate(req.params.id, { isDeleted: true }, { new: true });
+        await logAdminAction(req.user.userId, req.user.name, 'DELETED_BOOK', `Deleted product: ${book.title}`);
         res.json({ message: "Book deleted successfully" });
     } catch (e) { res.status(500).json({ error: "Error deleting book" }); }
 });
@@ -190,8 +261,20 @@ app.patch('/api/books/:id/stock', verifyAdmin, async (req, res) => {
             { new: true }
         );
         if (!updated) return res.status(404).json({ error: "Book not found" });
+        await logAdminAction(req.user.userId, req.user.name, 'UPDATED_STOCK', `Changed stock for ${updated.title} to ${newQty}`);
         res.json({ message: "Stock updated successfully", book: updated });
     } catch (e) { res.status(500).json({ error: "Error updating stock" }); }
+});
+
+// Toggle Visibility (Admin Only)
+app.put('/api/books/:id/visibility', verifyAdmin, async (req, res) => {
+    try {
+        const { isVisible } = req.body;
+        const updated = await Book.findByIdAndUpdate(req.params.id, { isVisible }, { new: true });
+        if (!updated) return res.status(404).json({ error: "Book not found" });
+        await logAdminAction(req.user.userId, req.user.name, 'TOGGLED_VISIBILITY', `Made ${updated.title} ${isVisible ? 'visible' : 'hidden'}`);
+        res.json({ message: "Visibility updated successfully", book: updated });
+    } catch (e) { res.status(500).json({ error: "Error updating visibility" }); }
 });
 
 app.post('/api/cart/add', verifyUser, async (req, res) => {
@@ -272,6 +355,180 @@ app.get('/api/orders/my-orders', verifyUser, async (req, res) => {
     }
 });
 
+// ==========================================
+// 🛡️ ADMIN ROUTES
+// ==========================================
+
+// GET /api/admin/stats — Real dashboard stats
+app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        let orderQuery = {};
+        if (startDate && endDate) {
+            orderQuery.orderedAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        }
+
+        const [totalUsers, totalBooks, allOrders] = await Promise.all([
+            User.countDocuments({ isAdmin: false }),
+            Book.countDocuments({ isDeleted: false }),
+            Order.find(orderQuery, 'totalAmount status orderedAt books').lean()
+        ]);
+
+        const totalRevenue  = allOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+        const totalOrders   = allOrders.length;
+        const pendingOrders = allOrders.filter(o => o.status === 'Pending').length;
+        const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled').length;
+        const lowStockBooks = await Book.countDocuments({ quantity: { $lte: 5, $gt: 0 }, isDeleted: false });
+        const outOfStock    = await Book.countDocuments({ quantity: 0, isDeleted: false });
+        const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;
+
+        // Top Selling Book calc
+        const bookSalesMap = {};
+        allOrders.forEach(o => {
+            o.books.forEach(b => {
+                bookSalesMap[b.title] = (bookSalesMap[b.title] || 0) + b.quantity;
+            });
+        });
+        let topSellingBook = 'None';
+        let maxQty = 0;
+        for (const [title, qty] of Object.entries(bookSalesMap)) {
+            if(qty > maxQty) { maxQty = qty; topSellingBook = title; }
+        }
+
+        // Sales Chart
+        const salesChart = [];
+        let numDays = 7;
+        let iterEnd = new Date();
+        if (startDate && endDate) {
+            const diffTime = Math.abs(new Date(endDate) - new Date(startDate));
+            numDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+            iterEnd = new Date(endDate);
+        }
+        for (let i = numDays - 1; i >= 0; i--) {
+            const d = new Date(iterEnd);
+            d.setDate(d.getDate() - i);
+            const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const end   = new Date(start); end.setDate(end.getDate() + 1);
+            const dayOrders = allOrders.filter(o => {
+                const orderDate = new Date(o.orderedAt);
+                return orderDate >= start && orderDate < end;
+            });
+            salesChart.push({
+                date: start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+                revenue: dayOrders.reduce((s, o) => s + o.totalAmount, 0),
+                orders: dayOrders.length
+            });
+        }
+
+        res.json({ totalUsers, totalBooks, totalOrders, totalRevenue, pendingOrders, cancelledOrders, lowStockBooks, outOfStock, avgOrderValue, salesChart, topSellingBook });
+    } catch (err) { res.status(500).json({ error: "Failed to fetch stats" }); }
+});
+
+// GET /api/admin/orders
+app.get('/api/admin/orders', verifyAdmin, async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', status = '' } = req.query;
+        let query = {};
+        if (search) query._id = { $regex: search, $options: 'i' }; // Basic exact match/regex on ID if supported, or customerName
+        if (search && search.length > 3) {
+             query = { $or: [ { customerName: { $regex: search, $options: 'i' } } ] };
+             // mongoose objectid regex search is tricky, keep name search
+        }
+        if (status) query.status = status;
+
+        const orders = await Order.find(query).sort({ orderedAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit)).lean();
+        const total = await Order.countDocuments(query);
+        res.json({ orders, total, pages: Math.ceil(total / limit) });
+    } catch (err) { res.status(500).json({ error: "Failed to fetch orders" }); }
+});
+
+// BULK UPDATE /api/admin/orders/bulk
+app.put('/api/admin/orders/bulk', verifyAdmin, async (req, res) => {
+    try {
+        const { orderIds, status } = req.body;
+        if (!orderIds || !status) return res.status(400).json({ error: "Missing data" });
+        await Order.updateMany({ _id: { $in: orderIds } }, { status });
+        await logAdminAction(req.user.userId, req.user.name, 'BULK_UPDATE_ORDERS', `Updated ${orderIds.length} orders to ${status}`);
+        res.json({ message: "Orders updated successfully" });
+    } catch (err) { res.status(500).json({ error: "Bulk update failed" }); }
+});
+
+// PUT /api/admin/orders/:id — Update order
+app.put('/api/admin/orders/:id', verifyAdmin, async (req, res) => {
+    try {
+        const { status, paymentStatus } = req.body;
+        const validStatuses = ['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'];
+        if (status && !validStatuses.includes(status)) return res.status(400).json({ error: "Invalid status" });
+        
+        let updateData = {};
+        if(status) updateData.status = status;
+        if(paymentStatus) updateData.paymentStatus = paymentStatus;
+
+        const order = await Order.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        if (!order) return res.status(404).json({ error: "Order not found" });
+        await logAdminAction(req.user.userId, req.user.name, 'UPDATED_ORDER', `Order ID: ${order._id}`);
+        res.json({ message: `Order updated`, order });
+    } catch (err) { res.status(500).json({ error: "Failed to update order" }); }
+});
+
+// GET /api/admin/users
+app.get('/api/admin/users', verifyAdmin, async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', role = '' } = req.query;
+        let query = {};
+        if (search) {
+            query = { $or: [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }] }
+        }
+        if (role === 'admin') query.isAdmin = true;
+        if (role === 'user') query.isAdmin = false;
+
+        const users = await User.find(query, '-password').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit)).lean();
+        const total = await User.countDocuments(query);
+        
+        // aggregate spendings
+        const usersWithStats = await Promise.all(users.map(async (u) => {
+            const orders = await Order.find({ userId: u._id }, 'totalAmount status').lean();
+            const totalSpent = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+            return { ...u, totalSpent, ordersCount: orders.length };
+        }));
+
+        res.json({ users: usersWithStats, total, pages: Math.ceil(total / limit) });
+    } catch (err) { res.status(500).json({ error: "Failed to fetch users" }); }
+});
+
+// PUT /api/admin/users/:id/block
+app.put('/api/admin/users/:id/block', verifyAdmin, async (req, res) => {
+    try {
+        if (req.params.id === req.user.userId) return res.status(400).json({ error: "Cannot block yourself" });
+        const { isBlocked } = req.body;
+        const user = await User.findByIdAndUpdate(req.params.id, { isBlocked }, { new: true });
+        await logAdminAction(req.user.userId, req.user.name, 'USER_BLOCK_STATUS', `${isBlocked ? 'Blocked' : 'Unblocked'} user ${user.email}`);
+        res.json({ message: `User block status updated`, user });
+    } catch (err) { res.status(500).json({ error: "Failed to update block status" }); }
+});
+
+// PUT /api/admin/users/:id/role
+app.put('/api/admin/users/:id/role', verifyAdmin, async (req, res) => {
+    try {
+        if (req.params.id === req.user.userId) return res.status(400).json({ error: "Cannot change your own role" });
+        const { isAdmin } = req.body;
+        const user = await User.findByIdAndUpdate(req.params.id, { isAdmin }, { new: true });
+        await logAdminAction(req.user.userId, req.user.name, 'USER_ROLE_CHANGE', `Changed role for ${user.email} to ${isAdmin ? 'Admin' : 'User'}`);
+        res.json({ message: `User role updated`, user });
+    } catch (err) { res.status(500).json({ error: "Failed to update role" }); }
+});
+
+// DELETE /api/admin/users/:id (admin, can't delete self)
+app.delete('/api/admin/users/:id', verifyAdmin, async (req, res) => {
+    try {
+        if (req.params.id === req.user.userId) return res.status(400).json({ error: "You cannot delete your own account" });
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) return res.status(404).json({ error: "User not found" });
+        await Cart.deleteMany({ userId: req.params.id });
+        await logAdminAction(req.user.userId, req.user.name, 'DELETED_USER', `Deleted user account: ${user.email}`);
+        res.json({ message: `User "${user.name}" removed successfully` });
+    } catch (err) { res.status(500).json({ error: "Failed to delete user" }); }
+});
 
 // ==========================================
 // 🤖 AI HELPER — Google Generative AI SDK

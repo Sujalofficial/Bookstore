@@ -1,23 +1,24 @@
 import { useState } from "react";
 import "./App.css";
-import { Routes, Route, useLocation } from "react-router-dom"; // ✅ useLocation add kiya
+import { Routes, Route, useLocation } from "react-router-dom";
 
 // 1. Import your pages
 import Home from "./Home";
-import Register from "./Register"; 
+import Register from "./Register";
 import Userlogin from "./Userlogin";
-import Adminlogin from "./Adminlogin"; 
+import Adminlogin from "./Adminlogin";
 import Admindashboard from "./Admindashboard";
 import Addbook from "./Addbook";
 import Userhome from "./Userhome";
 import Cart from "./Cart";
 import Profile from "./Profile";
-import Users from "./Users"
+import Users from "./Users";
 import Checkout from "./Checkout";
 import ManageBooks from "./ManageBooks";
 import AdminOrders from "./AdminOrders";
 import ChatBot from "./ChatBot";
 import Roadmap from "./Roadmap";
+// AdminLayout is used internally by admin pages — no need to import here
 
 function App() {
   const location = useLocation(); // ✅ Current path check karne ke liye
