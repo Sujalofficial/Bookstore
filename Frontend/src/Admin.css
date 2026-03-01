@@ -337,12 +337,8 @@
     border-bottom: none;
 }
 
-.ap-table tbody tr {
-    transition: background 0.2s ease;
-}
-
 .ap-table tbody tr:hover {
-    background: #f0f4ff;
+    background: #fafbff;
 }
 
 /* ─── SEARCH BAR (in card header) ─── */
@@ -622,121 +618,4 @@
     .ap-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-}
-
-/* ─── BADGES ─── */
-.ap-badge {
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-}
-
-.ap-badge.pending {
-    background: #fffbeb;
-    color: #d97706;
-    border: 1px solid #fde68a;
-}
-
-.ap-badge.delivered {
-    background: #ecfdf5;
-    color: #059669;
-    border: 1px solid #a7f3d0;
-}
-
-.ap-badge.shipped {
-    background: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #bfdbfe;
-}
-
-.ap-badge.cancelled {
-    background: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
-}
-
-.ap-badge.admin {
-    background: #f3e8ff;
-    color: #9333ea;
-    border: 1px solid #e9d5ff;
-}
-
-.ap-badge.user {
-    background: #f3f4f6;
-    color: #4b5563;
-    border: 1px solid #e5e7eb;
-}
-
-/* ─── DARK MODE (ap-theme=dark / body.ap-dark ) ─── */
-body.ap-dark .ap-shell {
-    background: #0f172a;
-    color: #f8fafc;
-}
-
-body.ap-dark .ap-topbar,
-body.ap-dark .ap-card,
-body.ap-dark .ap-stat-card {
-    background: #1e293b;
-    border-color: #334155;
-}
-
-body.ap-dark .ap-page-title,
-body.ap-dark .ap-card-title,
-body.ap-dark .ap-stat-value {
-    color: #f8fafc;
-}
-
-body.ap-dark .ap-page-subtitle,
-body.ap-dark .ap-stat-label,
-body.ap-dark .ap-stat-sub,
-body.ap-dark .ap-table th {
-    color: #cbd5e1;
-}
-
-body.ap-dark .ap-table th {
-    background: #0f172a;
-    border-bottom-color: #334155;
-}
-
-body.ap-dark .ap-table td {
-    color: #e2e8f0;
-    border-bottom-color: #334155;
-}
-
-body.ap-dark .ap-table tr:hover {
-    background: #334155;
-}
-
-body.ap-dark .ap-refresh-btn,
-body.ap-dark .ap-search-input,
-body.ap-dark .ap-status-select {
-    background: #0f172a;
-    border-color: #475569;
-    color: #f8fafc;
-}
-
-body.ap-dark .ap-refresh-btn:hover {
-    background: #334155;
-}
-
-body.ap-dark .ap-stat-card:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-
-body.ap-dark .ap-card-header {
-    border-bottom-color: #334155;
-}
-
-body.ap-dark .ap-empty h3 {
-    color: #f8fafc;
-}
-
-body.ap-dark .ap-toast-new {
-    background: #334155 !important;
-    color: #f8fafc !important;
 }

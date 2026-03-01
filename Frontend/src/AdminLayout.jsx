@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 import './Admin.css';
 
 const NAV = [
@@ -16,18 +14,6 @@ export default function AdminLayout({ children, title, subtitle, onRefresh, refr
   const location  = useLocation();
   const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
 
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('ap-theme') === 'dark');
-
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('ap-dark');
-      localStorage.setItem('ap-theme', 'dark');
-    } else {
-      document.body.classList.remove('ap-dark');
-      localStorage.setItem('ap-theme', 'light');
-    }
-  }, [darkMode]);
-
   const handleLogout = () => {
     if (window.confirm('Logout from Admin Panel?')) {
       localStorage.clear();
@@ -36,8 +22,7 @@ export default function AdminLayout({ children, title, subtitle, onRefresh, refr
   };
 
   return (
-    <div className={`ap-shell ${darkMode ? 'dark-mode' : ''}`}>
-      <Toaster position="top-right" toastOptions={{ className: 'ap-toast-new' }} />
+    <div className="ap-shell">
       {/* ─── SIDEBAR ─── */}
       <aside className="ap-sidebar">
         <div className="ap-sidebar-logo">BOOK<span>SHELF.</span></div>
@@ -66,9 +51,6 @@ export default function AdminLayout({ children, title, subtitle, onRefresh, refr
             {subtitle && <div className="ap-page-subtitle">{subtitle}</div>}
           </div>
           <div className="ap-topbar-right">
-            <button className="ap-refresh-btn" onClick={() => setDarkMode(!darkMode)} title="Toggle Theme">
-              {darkMode ? '☀️' : '🌙'}
-            </button>
             <span className="ap-admin-chip">👑 {adminUser.name || 'Admin'}</span>
             {onRefresh && (
               <button className={`ap-refresh-btn ${refreshing ? 'spinning' : ''}`} onClick={onRefresh} title="Refresh">

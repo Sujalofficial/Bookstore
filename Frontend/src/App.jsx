@@ -28,10 +28,8 @@ function App() {
   const user = storedUser ? JSON.parse(storedUser) : null;
 
   // Sirf in raaston par aur logged-in user ko chatbot dikhega
-  const userSidePaths = ["/userhome", "/cart", "/profile", "/checkout", "/roadmap"];
-  // Removed !user.isAdmin and explicit userSidePaths restriction at user's request
-  const hiddenPaths = ["/login", "/register", "/adminlogin"];
-  const isChatVisible = !hiddenPaths.includes(location.pathname);
+  const userSidePaths = ["/userhome", "/cart", "/profile", "/checkout"];
+  const isChatVisible = user && !user.isAdmin && userSidePaths.includes(location.pathname);
 
   return (
     <>
