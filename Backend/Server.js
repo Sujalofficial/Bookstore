@@ -3,9 +3,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const cors = require('cors'); 
+const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 
@@ -177,6 +178,22 @@ app.delete('/api/books/:id', verifyAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: "Error deleting book" }); }
 });
 
+// Update stock quantity (Admin Only)
+app.patch('/api/books/:id/stock', verifyAdmin, async (req, res) => {
+    try {
+        const newQty = parseInt(req.body.quantity);
+        if (isNaN(newQty) || newQty < 0) 
+            return res.status(400).json({ error: "Invalid quantity value" });
+        const updated = await Book.findByIdAndUpdate(
+            req.params.id,
+            { quantity: newQty },
+            { new: true }
+        );
+        if (!updated) return res.status(404).json({ error: "Book not found" });
+        res.json({ message: "Stock updated successfully", book: updated });
+    } catch (e) { res.status(500).json({ error: "Error updating stock" }); }
+});
+
 app.post('/api/cart/add', verifyUser, async (req, res) => {
     const { bookId, title, price, image } = req.body;
     try {
@@ -238,22 +255,77 @@ app.post('/api/orders/checkout', verifyUser, async (req, res) => {
     res.status(201).json(order);
 });
 
-// AI Feature Helper
+// ==========================================
+// 🤖 AI HELPER — Google Generative AI SDK
+// ==========================================
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
 const fetchGemini = async (prompt) => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "AI currently unavailable";
+    try {
+        // gemini-2.0-flash with v1 API version (supported for free tier)
+        const model = genAI.getGenerativeModel(
+            { model: 'gemini-2.5-flash' },
+            { apiVersion: 'v1' }
+        );
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (err) {
+        const msg = err.message || '';
+        if (msg.includes('429') || msg.includes('quota') || msg.includes('Too Many Requests')) {
+            console.error('⚠️  Gemini quota exceeded:', msg.split('\n')[0]);
+            return '__QUOTA_EXCEEDED__';
+        }
+        console.error('❌ Gemini API Error:', msg.split('\n')[0]);
+        return null;
+    }
 };
 
+
+// AI Book Summary
 app.post('/api/ai-summary', async (req, res) => {
-    const prompt = `Summarize book "${req.body.title}" by ${req.body.author} in 60 words. Tone: Professional.`;
-    const summary = await fetchGemini(prompt);
-    res.json({ summary });
+    try {
+        const { title, author } = req.body;
+        if (!title || !author) return res.status(400).json({ error: 'Title and author are required' });
+        const prompt = `Summarize the book "${title}" by ${author} in exactly 60 words. Be professional, engaging, and highlight what makes it special.`;
+        const summary = await fetchGemini(prompt);
+        if (summary === '__QUOTA_EXCEEDED__') return res.status(429).json({ error: '⚠️ AI quota exceeded for today. Please try again tomorrow or upgrade your Gemini API plan.' });
+        if (!summary) return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again.' });
+        res.json({ summary });
+    } catch (err) {
+        console.error('AI Summary error:', err);
+        res.status(500).json({ error: 'Failed to generate summary' });
+    }
+});
+
+// AI Reading Roadmap
+app.post('/api/ai-roadmap', async (req, res) => {
+    try {
+        const { goal } = req.body;
+        if (!goal) return res.status(400).json({ error: 'Goal is required' });
+
+        const books = await Book.find({}, 'title author category').lean();
+        const bookList = books.map(b => `"${b.title}" by ${b.author} (${b.category})`).join('\n');
+
+        const prompt = `You are a reading roadmap expert. A user wants to: "${goal}".
+
+Create a structured, step-by-step learning roadmap with 5-7 stages. For each stage:
+- Give it a clear title
+- Explain what to learn/focus on (2-3 sentences)
+- Recommend 1-2 books. If any book from our store matches, mark it as [AVAILABLE IN OUR STORE]. Otherwise mark it as [EXTERNAL RECOMMENDATION].
+
+Our store currently has these books:
+${bookList || 'No books currently in inventory.'}
+
+Format the response clearly with numbered stages. Keep it motivating and actionable.`;
+
+        const roadmap = await fetchGemini(prompt);
+        if (roadmap === '__QUOTA_EXCEEDED__') return res.status(429).json({ error: '⚠️ AI quota exceeded for today. Please try again tomorrow or upgrade your Gemini API plan.' });
+        if (!roadmap) return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again.' });
+        res.json({ roadmap });
+    } catch (err) {
+        console.error('AI Roadmap error:', err);
+        res.status(500).json({ error: 'Failed to generate roadmap' });
+    }
 });
 
 // ==========================================
@@ -293,6 +365,8 @@ Instructions:
 
         // 4. Call Gemini with the inventory-aware prompt
         const reply = await fetchGemini(prompt);
+        if (reply === '__QUOTA_EXCEEDED__') return res.json({ reply: '⚠️ AI quota exceeded for today. The free-tier daily limit has been reached. Please try again tomorrow!' });
+        if (!reply) return res.json({ reply: 'Sorry, AI is temporarily unavailable. Please try again shortly! 😅' });
         res.json({ reply });
 
     } catch (err) {

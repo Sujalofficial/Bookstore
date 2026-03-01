@@ -1,0 +1,458 @@
+/* =============================================
+   ADMIN LOGIN PAGE — BOOKSHELF ADMIN PORTAL
+   ============================================= */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ─── LAYOUT ─── */
+.admin-login-page {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    background: #0a0f1e;
+}
+
+/* ── LEFT PANEL ── */
+.admin-left-panel {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 56px;
+    overflow: hidden;
+    background: linear-gradient(145deg, #0f0c29, #302b63, #24243e);
+}
+
+/* Orbs */
+.al-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.al-orb-1 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, #6366f1, #4338ca);
+    top: -120px;
+    left: -80px;
+    animation: alFloat 9s ease-in-out infinite;
+}
+
+.al-orb-2 {
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, #8b5cf6, #6d28d9);
+    bottom: -60px;
+    right: 40px;
+    animation: alFloat 7s ease-in-out infinite reverse;
+}
+
+@keyframes alFloat {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    50% {
+        transform: translate(20px, -20px);
+    }
+}
+
+/* Dot grid */
+.al-dot-grid {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+/* Content */
+.al-left-content {
+    position: relative;
+    z-index: 1;
+}
+
+.al-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-bottom: 48px;
+    width: fit-content;
+    text-decoration: none;
+}
+
+.al-back-btn:hover {
+    background: rgba(255, 255, 255, 0.13);
+    color: #fff;
+    transform: translateX(-3px);
+}
+
+.al-shield-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.al-panel-title {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 14px;
+}
+
+.al-panel-title .al-gradient-text {
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.al-panel-subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1.7;
+    max-width: 360px;
+    margin-bottom: 48px;
+}
+
+/* Stats */
+.al-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.al-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 14px 18px;
+    backdrop-filter: blur(8px);
+    transition: transform 0.25s;
+}
+
+.al-stat-item:hover {
+    transform: translateX(5px);
+}
+
+.al-stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.icon-purple {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+.icon-green {
+    background: rgba(16, 185, 129, 0.22);
+}
+
+.icon-amber {
+    background: rgba(245, 158, 11, 0.22);
+}
+
+.al-stat-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
+}
+
+.al-stat-value {
+    font-size: 15px;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+}
+
+/* ── RIGHT FORM PANEL ── */
+.admin-right-panel {
+    flex: 0.9;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+}
+
+.admin-form-box {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Form header */
+.adm-form-header {
+    margin-bottom: 36px;
+}
+
+.adm-logo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0f0ff;
+    border: 1px solid #e0e7ff;
+    padding: 6px 14px;
+    border-radius: 50px;
+    margin-bottom: 20px;
+}
+
+.adm-logo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+}
+
+.adm-logo-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6366f1;
+    letter-spacing: 0.5px;
+}
+
+.adm-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.8px;
+    margin-bottom: 6px;
+}
+
+.adm-subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+/* Error banner */
+.adm-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    color: #be123c;
+    font-weight: 500;
+}
+
+/* Input groups */
+.adm-input-group {
+    margin-bottom: 20px;
+}
+
+.adm-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+}
+
+.adm-input-wrap {
+    position: relative;
+}
+
+.adm-input-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    pointer-events: none;
+    color: #94a3b8;
+    transition: color 0.2s;
+}
+
+.adm-input {
+    width: 100%;
+    padding: 13px 13px 13px 44px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    color: #0f172a;
+    outline: none;
+    background: #f8fafc;
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    font-family: 'Inter', sans-serif;
+}
+
+.adm-input:focus {
+    border-color: #6366f1;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.adm-input-wrap:focus-within .adm-input-icon {
+    color: #6366f1;
+}
+
+/* Password eye toggle */
+.adm-eye-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #94a3b8;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.adm-eye-btn:hover {
+    color: #6366f1;
+}
+
+/* Submit button */
+.adm-submit-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+    font-size: 15.5px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+    letter-spacing: 0.2px;
+    margin-top: 8px;
+    font-family: 'Inter', sans-serif;
+}
+
+.adm-submit-btn:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(99, 102, 241, 0.45);
+}
+
+.adm-submit-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Button spinner */
+.adm-btn-spin {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: adm-spin 0.7s linear infinite;
+}
+
+@keyframes adm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Footer */
+.adm-form-footer {
+    margin-top: 28px;
+    text-align: center;
+}
+
+.adm-footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.adm-footer-link:hover {
+    color: #6366f1;
+}
+
+.adm-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #94a3b8;
+    font-size: 12px;
+    margin: 24px 0;
+}
+
+.adm-divider::before,
+.adm-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.adm-user-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.adm-user-link span {
+    color: #6366f1;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.adm-user-link span:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+    .admin-left-panel {
+        display: none;
+    }
+
+    .admin-right-panel {
+        flex: 1;
+    }
+}

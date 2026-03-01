@@ -36,14 +36,17 @@ export default function Userhome() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     title: book.title, 
-                    author: book.author, 
-                    category: book.category 
+                    author: book.author,
                 })
             });
             const data = await res.json();
-            setAiSummary(data.summary);
+            if (!res.ok) {
+                setAiSummary(data.error || "AI service is temporarily unavailable. Please try again.");
+            } else {
+                setAiSummary(data.summary);
+            }
         } catch (err) {
-            setAiSummary("Sorry, AI is currently busy. Please try again later.");
+            setAiSummary("⚠️ Could not reach the server. Check your connection and try again.");
         } finally {
             setIsAiLoading(false);
         }

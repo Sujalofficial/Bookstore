@@ -7,12 +7,14 @@ function Roadmap() {
   const [goal, setGoal] = useState("");
   const [roadmap, setRoadmap] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleGenerate = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setRoadmap(""); // Purana result clear karo
+    setRoadmap("");
+    setError("");
 
     try {
       const res = await fetch(`${API_URL}/api/ai-roadmap`, {
@@ -25,9 +27,10 @@ function Roadmap() {
       if (res.ok) {
         setRoadmap(data.roadmap);
       } else {
-        alert("AI is thinking hard... try again!");
+        setError(data.error || "AI could not generate a roadmap. Please try again.");
       }
     } catch (err) {
+      setError("Could not reach the server. Check your connection.");
       console.error("Roadmap Error", err);
     } finally {
       setLoading(false);
@@ -75,6 +78,20 @@ function Roadmap() {
               {loading ? "Analyzing Skills... 🧠" : "Generate Roadmap ✨"}
             </button>
           </form>
+          {error && (
+            <div style={{
+              marginTop: '14px',
+              background: '#fff1f2',
+              border: '1px solid #fecdd3',
+              color: '#be123c',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
         </div>
 
         {/* Roadmap Display */}
