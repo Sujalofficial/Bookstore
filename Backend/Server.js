@@ -190,7 +190,7 @@ app.use('/api', apiLimiter);
 
 app.get('/api/books', async (req, res) => {
     // Users only see visible & non-deleted books
-    const books = await Book.find({ isDeleted: false, isVisible: true }).sort({ createdAt: -1 });
+    const books = await Book.find({ isDeleted: { $ne: true }, isVisible: { $ne: false } }).sort({ createdAt: -1 });
     res.json(books);
 });
 
@@ -198,7 +198,7 @@ app.get('/api/books', async (req, res) => {
 app.get('/api/admin/books', verifyAdmin, async (req, res) => {
     try {
         const { page = 1, limit = 10, search = '', category = '', sort = 'createdAt' } = req.query;
-        const query = { isDeleted: false };
+        const query = { isDeleted: { $ne: true } };
         if (search) query.title = { $regex: search, $options: 'i' };
         if (category) query.category = category;
 
@@ -370,7 +370,7 @@ app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
 
         const [totalUsers, totalBooks, allOrders] = await Promise.all([
             User.countDocuments({ isAdmin: false }),
-            Book.countDocuments({ isDeleted: false }),
+            Book.countDocuments({ isDeleted: { $ne: true } }),
             Order.find(orderQuery, 'totalAmount status orderedAt books').lean()
         ]);
 
@@ -378,8 +378,8 @@ app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
         const totalOrders   = allOrders.length;
         const pendingOrders = allOrders.filter(o => o.status === 'Pending').length;
         const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled').length;
-        const lowStockBooks = await Book.countDocuments({ quantity: { $lte: 5, $gt: 0 }, isDeleted: false });
-        const outOfStock    = await Book.countDocuments({ quantity: 0, isDeleted: false });
+        const lowStockBooks = await Book.countDocuments({ quantity: { $lte: 5, $gt: 0 }, isDeleted: { $ne: true } });
+        const outOfStock    = await Book.countDocuments({ quantity: 0, isDeleted: { $ne: true } });
         const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;
 
         // Top Selling Book calc
