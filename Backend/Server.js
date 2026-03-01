@@ -255,6 +255,20 @@ app.post('/api/orders/checkout', verifyUser, async (req, res) => {
     res.status(201).json(order);
 });
 
+// Get logged-in user's own orders
+app.get('/api/orders/my-orders', verifyUser, async (req, res) => {
+    try {
+        const orders = await Order.find({ userId: req.user.userId })
+            .sort({ orderedAt: -1 })
+            .lean();
+        res.json(orders);
+    } catch (err) {
+        console.error("My orders error:", err);
+        res.status(500).json({ error: "Failed to fetch orders" });
+    }
+});
+
+
 // ==========================================
 // 🤖 AI HELPER — Google Generative AI SDK
 // ==========================================
