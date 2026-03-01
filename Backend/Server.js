@@ -542,8 +542,7 @@ ${inventoryContext}${ordersContext}
         if (msg.includes('429') || msg.includes('quota') || msg.includes('Too Many Requests')) {
             return res.json({ reply: '⚠️ AI quota exceeded for today. The free-tier daily limit has been reached. Please try again tomorrow!' });
         }
-        console.error("Chat error:", err);
-        res.status(500).json({ reply: "Sorry, I'm having a little trouble right now. Please try again in a moment! 😅" });
+        res.status(500).json({ reply: "Sorry, I'm having a little trouble right now. Please try again in a moment! 😅 Error details: " + msg });
     }
 });
 
