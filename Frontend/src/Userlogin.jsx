@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
-import './App.css';
+import './Userlogin.css'; // Updated CSS specifically for User Login
 import API_URL from './config';
 
 function Userlogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // Error dikhane ke liye
-  const [loading, setLoading] = useState(false); // Button loading state
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
 
@@ -26,13 +26,10 @@ function Userlogin() {
       const data = await res.json();
 
       if (res.ok) {
-        // Success
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Alert hata kar seedha navigate karein (UX better hota hai)
         navigate('/userhome');
       } else {
-        // Fail
         setError(data.error || "Login failed. Please check credentials.");
       }
     } catch (err) {
@@ -43,56 +40,65 @@ function Userlogin() {
   };
 
   return (
-    <div className="login-page">
-      {/* LEFT SIDE: Image Section */}
-      <div className="login-visual">
-        <div className="visual-content">
-          <h2>Welcome Back!</h2>
-          <p>Access your digital library and continue your reading journey.</p>
+    <div className="ul-page">
+      {/* Background Blobs for Glassmorphism Effect */}
+      <div className="ul-bg-blob-1"></div>
+      <div className="ul-bg-blob-2"></div>
+
+      {/* Back to Home Button */}
+      <NavLink to="/" className="ul-back-btn">
+        <span>←</span> Back to Home
+      </NavLink>
+
+      <div className="ul-container">
+        {/* LEFT SIDE: Visuals */}
+        <div className="ul-visual">
+          <div className="ul-visual-content">
+            <h1 className="ul-visual-title">Welcome<br/>Back.</h1>
+            <p className="ul-visual-subtitle">
+              Access your digital library, explore personalized UI, and dive into your next great story.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* RIGHT SIDE: Form Section */}
-      <div className="login-form-container">
-        <div className="form-wrapper">
-          <h2 className="form-title">Login</h2>
-          <p className="form-subtitle">Please enter your details</p>
+        {/* RIGHT SIDE: Form */}
+        <div className="ul-form-section">
+          <h2 className="ul-form-title">Sign in</h2>
+          <p className="ul-form-subtitle">Please enter your credentials to proceed.</p>
 
-          {/* Error Message */}
-          {error && <div className="error-message">⚠️ {error}</div>}
+          {error && <div className="ul-error">{error}</div>}
 
           <form onSubmit={handleLogin}>
-            
-          <div className="input-group">
-  <label>Email Address</label>
-  <input 
-    type="email"
-    placeholder="john@example.com"
-    onChange={(e) => setEmail(e.target.value)}
-    required
-  />
-</div>
+            <div className="ul-input-group">
+              <label>Email Address</label>
+              <input 
+                type="email"
+                placeholder="john@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-<div className="input-group">
-  <label>Password</label>
-  <input 
-    type="password"
-    placeholder="••••••••"
-    onChange={(e) => setPassword(e.target.value)}
-    required
-  />
-</div>
+            <div className="ul-input-group">
+              <label>Password</label>
+              <input 
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-            <button type="submit" className="login-btn" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+            <button type="submit" className="ul-btn" disabled={loading}>
+              {loading ? "Signing in..." : "Continue to Account"}
             </button>
           </form>
 
-          {/* REGISTER LINK */}
-          <div className="form-footer">
-            <p>Don't have an account? 
-              <NavLink to="/register" className="link-text"> Sign up for free</NavLink>
-            </p>
+          <div className="ul-footer">
+            Don't have an account?{' '}
+            <NavLink to="/register" className="ul-link">Sign up for free</NavLink>
           </div>
         </div>
       </div>
