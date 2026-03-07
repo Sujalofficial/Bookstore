@@ -1,0 +1,55 @@
+﻿require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const cors = require('cors'); 
+const multer = require('multer');
+const path = require('path');
+
+const app = express();
+
+// ==========================================
+// ÔÜÖ´©Å CONFIGURATION (Atlas & Production Ready)
+// ==========================================
+app.use(express.json());
+app.use(cors()); 
+
+// Variables from .env
+const PORT = process.env.PORT || 5000;
+const MY_SECRET_KEY = process.env.MY_SECRET_KEY || "#Sujal7777"; 
+const MONGO_URI = process.env.MONGO_URI; 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// ==========================================
+// 1. CONNECT DB (MongoDB Atlas)
+// ==========================================
+
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("Ô£à SUCCESS: Connected to MongoDB Atlas Cloud!"))
+    .catch(err => {
+        console.error("ÔØî ERROR: Could not connect to MongoDB Atlas.");
+        console.error("Detail:", err.message);
+        console.log("Tip: Check if your IP is whitelisted (0.0.0.0/0) in Atlas.");
+    });
+
+// ==========================================
+// 2. DEFINE SCHEMAS & MODELS
+// ==========================================
+
+// User Model
+const User = mongoose.model('User', new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true }, 
+    password: { type: String, required: true },
+    isAdmin: { type: Boolean, default: false } 
+}, { timestamps: true }));
+
+// Book Model
+const Book = mongoose.model('Book', new mongoose.Schema({
+    title: { type: String, required: true },
+    author: { type: String, required: true },
+    price: { type: Number, required: true },
+    category: { type: String, required: true },
+    image: { type: String },
+    quantity: { type: Number, required: true, default: 0 } // Inven

@@ -396,99 +396,16 @@ const fetchGemini = async (prompt) => {
 // AI Book Summary
 app.post('/api/ai-summary', async (req, res) => {
     try {
-        // 1. Safe destructuring and default fallback to prevent 'undefined' crashes
-        const { title = '', author = '' } = req.body || {};
-
-        // 2. Strict validation & sanitization check
-        const sanitizedTitle = title.trim();
-        const sanitizedAuthor = author.trim();
-
-        if (!sanitizedTitle || !sanitizedAuthor) {
-            return res.status(400).json({ 
-                error: 'Both book title and author are required and cannot be empty.' 
-            });
-        }
-
-        const prompt = `Summarize the book "${sanitizedTitle}" by ${sanitizedAuthor} in exactly 60 words. Be professional, engaging, and highlight what makes it special.`;
-        
-        // 3. Call the AI service
+        const { title, author } = req.body;
+        if (!title || !author) return res.status(400).json({ error: 'Title and author are required' });
+        const prompt = `Summarize the book "${title}" by ${author} in exactly 60 words. Be professional, engaging, and highlight what makes it special.`;
         const summary = await fetchGemini(prompt);
-
-        // 4. Handle known failure modes & Quota Exceeded clearly
-        if (summary === '__QUOTA_EXCEEDED__') {
-            return res.status(429).json({ 
-                error: '⚠️ AI quota exceeded for today. Please try again tomorrow or upgrade your Gemini API plan.' 
-            });
-        }
-
-        if (!summary) {
-            return res.status(503).json({ 
-                error: 'AI service temporarily unavailable or failed to process the request. Please try again.' 
-            });
-        }
-
-        // 5. Success block with consistent schema matching what the frontend currently expects (it expects simple { summary })
-        return res.status(200).json({ summary: summary });
-
+        if (summary === '__QUOTA_EXCEEDED__') return res.status(429).json({ error: '⚠️ AI quota exceeded for today. Please try again tomorrow or upgrade your Gemini API plan.' });
+        if (!summary) return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again.' });
+        res.json({ summary });
     } catch (err) {
-        // 6. Safe and discreet internal server error catch
-        console.error('AI Summary Route Error:', err.message || err);
-        return res.status(500).json({ 
-            error: 'An unexpected internal error occurred while generating the summary.' 
-        });
-    }
-});
-
-// AI Business Insights (Admin Dashboard)
-app.get('/api/ai-insights', verifyToken, async (req, res) => {
-    try {
-        // Build context from live store data
-        const [books, orders] = await Promise.all([
-            Book.find({}, 'title author category quantity').lean(),
-            Order.find({}).sort({ orderedAt: -1 }).limit(50).lean(),
-        ]);
-
-        const totalRevenue = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
-        const pendingCount = orders.filter(o => o.status === 'Pending').length;
-        const lowStockBooks = books.filter(b => b.quantity > 0 && b.quantity <= 5).map(b => `"${b.title}" (${b.quantity} left)`);
-        const outOfStock    = books.filter(b => b.quantity <= 0).map(b => `"${b.title}"`);
-
-        // Category breakdown
-        const catMap = {};
-        for (const o of orders) {
-          for (const item of (o.books || [])) {
-            const cat = item.category || 'Unknown';
-            catMap[cat] = (catMap[cat] || 0) + (item.quantity || 1);
-          }
-        }
-        const catSummary = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([cat,qty])=>`${cat}: ${qty} sold`).join(', ');
-
-        const prompt = `You are an expert bookstore business analyst. Analyze this data and return EXACTLY 4 bullet points (start each with a dash "-") with actionable business insights. Be concise, specific, and data-driven. No headers, no introductions, just 4 dash-bullet insights.
-
-Store Data:
-- Total books in inventory: ${books.length}
-- Total orders (last 50): ${orders.length}
-- Total revenue: ₹${totalRevenue.toLocaleString('en-IN')}
-- Pending orders: ${pendingCount}
-- Low stock books (≤5 copies): ${lowStockBooks.length > 0 ? lowStockBooks.join(', ') : 'None'}
-- Out of stock books: ${outOfStock.length > 0 ? outOfStock.slice(0,5).join(', ') : 'None'}
-- Top selling categories: ${catSummary || 'Insufficient data'}
-
-Generate 4 specific, actionable insights for this bookstore admin.`;
-
-        const insights = await fetchGemini(prompt);
-
-        if (insights === '__QUOTA_EXCEEDED__') {
-            return res.status(429).json({ error: '⚠️ AI quota exceeded. Please try again tomorrow.' });
-        }
-        if (!insights) {
-            return res.status(503).json({ error: 'AI service temporarily unavailable.' });
-        }
-
-        return res.status(200).json({ insights });
-    } catch (err) {
-        console.error('AI Insights Error:', err.message || err);
-        return res.status(500).json({ error: 'Failed to generate insights.' });
+        console.error('AI Summary error:', err);
+        res.status(500).json({ error: 'Failed to generate summary' });
     }
 });
 

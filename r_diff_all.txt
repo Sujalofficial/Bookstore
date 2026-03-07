@@ -1,0 +1,60 @@
+diff --git a/Backend/chat_err.txt b/Backend/chat_err.txt
+new file mode 100644
+index 0000000..f9afccf
+Binary files /dev/null and b/Backend/chat_err.txt differ
+diff --git a/Frontend/src/ChatBot.jsx b/Frontend/src/ChatBot.jsx
+index 1d2d698..e3eff9f 100644
+--- a/Frontend/src/ChatBot.jsx
++++ b/Frontend/src/ChatBot.jsx
+@@ -118,7 +118,7 @@ export default function ChatBot() {
+             },
+             body: JSON.stringify({
+               message: text,
+-              history: buildHistory(next),
++              history: buildHistory(prev),
+             }),
+           });
+           const data = await res.json();
+diff --git a/Frontend/src/Userhome.jsx b/Frontend/src/Userhome.jsx
+index ad1e1d4..a74e267 100644
+--- a/Frontend/src/Userhome.jsx
++++ b/Frontend/src/Userhome.jsx
+@@ -156,7 +156,11 @@ export default function Userhome() {
+     }
+   };
+ 
+-  const openAiModal = async (book) => {
++  const openAiModal = async (book, e) => {
++    if (e) {
++      e.preventDefault();
++      e.stopPropagation();
++    }
+     setAiModal(book);
+     setAiSummary("");
+     setAiLoading(true);
+@@ -164,12 +168,13 @@ export default function Userhome() {
+       const res = await fetch(`${API_URL}/api/ai-summary`, {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+-        body: JSON.stringify({ title: book.title, author: book.author }),
++        body: JSON.stringify({ title: book.title || "Unknown", author: book.author || "Unknown" }),
+       });
+       const data = await res.json();
+       setAiSummary(res.ok ? data.summary : (data.error || "AI unavailable. Try again."));
+-    } catch {
+-      setAiSummary("Could not reach the server.");
++    } catch (err) {
++      console.error("AI Summary fetch error:", err);
++      setAiSummary("Could not reach the server or request was blocked.");
+     } finally {
+       setAiLoading(false);
+     }
+@@ -401,7 +406,7 @@ export default function Userhome() {
+                             onError={e => { e.target.src = "https://via.placeholder.com/260x360?text=Cover"; }}
+                           />
+                           <div className="uh-overlay">
+-                            <button className="uh-btn uh-btn-glass" onClick={() => openAiModal(book)}>
++                            <button className="uh-btn uh-btn-glass" onClick={(e) => openAiModal(book, e)}>
+                               <StarIcon className="icon-sm" /> AI Summary
+                             </button>
+                           </div>

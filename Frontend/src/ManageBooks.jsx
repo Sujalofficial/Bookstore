@@ -1,12 +1,39 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ManageBooks.css";
+import "./Admin.css";
 import API_URL from "./config";
+
+// ─── Confirm Dialog Component ───
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  return (
+    <div className="ap-confirm-backdrop">
+      <div className="ap-confirm-modal">
+        <div className="ap-confirm-icon">🗑️</div>
+        <h3>Are you sure?</h3>
+        <p>{message}</p>
+        <div className="ap-confirm-actions">
+          <button
+            className="ap-btn subtle"
+            style={{ minWidth: 90 }}
+            onClick={onCancel}
+          >Cancel</button>
+          <button
+            className="ap-btn danger"
+            style={{ minWidth: 90, background: '#dc2626', color: '#fff' }}
+            onClick={onConfirm}
+          >Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ManageBooks() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState(null); // { id, title }
   const navigate = useNavigate();
 
   // ── Edit Stock Modal State ──
@@ -34,7 +61,12 @@ export default function ManageBooks() {
 
   // 2. Delete Book
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`⚠️ Are you sure you want to delete "${title}"?\nThis action cannot be undone.`)) return;
+    setConfirmDialog({ id, title });
+  };
+
+  const confirmDeleteBook = async () => {
+    const { id, title } = confirmDialog;
+    setConfirmDialog(null);
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/books/${id}`, {
@@ -101,11 +133,12 @@ export default function ManageBooks() {
     setTimeout(() => setToast(null), 3200);
   };
 
-  // Stock badge helper
+  // Stock badge helper — 3-tier smart alerts
   const getStockBadge = (qty) => {
-    if (qty <= 0)   return { label: "❌ Out of Stock",  bg: "#fdecea", color: "#c62828" };
-    if (qty <= 5)   return { label: `⚠️ Low — ${qty} left`, bg: "#fff8e1", color: "#e65100" };
-    return          { label: `📦 ${qty} in stock`,      bg: "#e8f5e9", color: "#2e7d32" };
+    if (qty <= 0)   return { label: "Out of Stock",           bg: "#fdecea", color: "#c62828", border: "#fca5a5" };
+    if (qty <= 4)   return { label: `🔴 Critical — ${qty} left`, bg: "#fff1f2", color: "#dc2626", border: "#fecaca" };
+    if (qty <= 9)   return { label: `🟡 Low — ${qty} left`,     bg: "#fffbeb", color: "#d97706", border: "#fde68a" };
+    return          { label: `✅ ${qty} in stock`,              bg: "#ecfdf5", color: "#059669", border: "#a7f3d0" };
   };
 
   // Search Filter
@@ -283,6 +316,15 @@ export default function ManageBooks() {
           <span>{toast.title}</span>
           <span className="toast-sub">{toast.sub}</span>
         </div>
+      )}
+
+      {/* ── CONFIRM DIALOG ── */}
+      {confirmDialog && (
+        <ConfirmDialog
+          message={`Remove "${confirmDialog.title}" from inventory? This action cannot be undone.`}
+          onConfirm={confirmDeleteBook}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
 
     </div>

@@ -8,12 +8,16 @@ const CATEGORIES = ['Fiction', 'Self-Help', 'Business', 'Technology', 'Thriller'
 export default function Addbook() {
     const navigate = useNavigate();
 
-    const [form, setForm] = useState({ title: '', author: '', price: '', category: '', quantity: '' });
+    const [form, setForm] = useState({ title: '', author: '', price: '', category: '', quantity: '', description: '' });
     const [image, setImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [toast, setToast] = useState(null);
     const [totalBooks, setTotalBooks] = useState('—');
+
+    // AI Summary state
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const [aiError, setAiError] = useState('');
 
     // Fetch total books count for left panel
     useEffect(() => {
@@ -45,6 +49,39 @@ export default function Addbook() {
         setTimeout(() => setToast(null), 3200);
     };
 
+    // ─── AI Summary Generator ───
+    const handleGenerateSummary = async () => {
+        const t = form.title.trim();
+        const a = form.author.trim();
+        if (!t || !a) {
+            setAiError('Please fill in the Book Title and Author Name first.');
+            setTimeout(() => setAiError(''), 3000);
+            return;
+        }
+        setAiGenerating(true);
+        setAiError('');
+        try {
+            const res  = await fetch(`${API_URL}/api/ai-summary`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: t, author: a }),
+            });
+            const data = await res.json();
+            if (res.ok && data.summary) {
+                setForm(prev => ({ ...prev, description: data.summary }));
+                showToast('✨ Summary Generated!', 'AI description filled in. Feel free to edit it.');
+            } else {
+                setAiError(data.error || 'AI service unavailable. Try again.');
+                setTimeout(() => setAiError(''), 5000);
+            }
+        } catch {
+            setAiError('Could not reach server. Check your connection.');
+            setTimeout(() => setAiError(''), 4000);
+        } finally {
+            setAiGenerating(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
@@ -64,7 +101,7 @@ export default function Addbook() {
             const data = await res.json();
             if (res.ok) {
                 showToast('Book Added! 🎉', `"${form.title}" — ${form.quantity} copies added to inventory`);
-                setForm({ title: '', author: '', price: '', category: '', quantity: '' });
+                setForm({ title: '', author: '', price: '', category: '', quantity: '', description: '' });
                 setImage(null);
                 setImagePreview(null);
                 setTotalBooks(prev => (typeof prev === 'number' ? prev + 1 : prev));
@@ -104,10 +141,10 @@ export default function Addbook() {
                             </div>
                         </div>
                         <div className="stat-chip">
-                            <span className="chip-icon">📦</span>
+                            <span className="chip-icon">🤖</span>
                             <div>
-                                <div className="chip-label">Set stock quantity</div>
-                                <div className="chip-value">Tracks inventory</div>
+                                <div className="chip-label">AI Summary</div>
+                                <div className="chip-value">Auto-generate</div>
                             </div>
                         </div>
                     </div>
@@ -217,6 +254,77 @@ export default function Addbook() {
                                 </div>
                             </div>
 
+                            {/* ── AI Description / Summary ── */}
+                            <div className="form-group full-width">
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <label style={{ margin: 0 }}>Book Description</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleGenerateSummary}
+                                        disabled={aiGenerating}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                            background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: 10,
+                                            padding: '7px 14px',
+                                            fontSize: 12.5,
+                                            fontWeight: 700,
+                                            cursor: aiGenerating ? 'not-allowed' : 'pointer',
+                                            opacity: aiGenerating ? 0.7 : 1,
+                                            fontFamily: 'Inter, sans-serif',
+                                            transition: 'all 0.2s',
+                                            boxShadow: '0 2px 8px rgba(99,102,241,0.3)',
+                                        }}
+                                    >
+                                        {aiGenerating ? (
+                                            <>
+                                                <div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                                Generating…
+                                            </>
+                                        ) : (
+                                            <>✨ Generate AI Summary</>
+                                        )}
+                                    </button>
+                                </div>
+                                {aiError && (
+                                    <div style={{ color: '#dc2626', fontSize: 12, marginBottom: 6, background: '#fff1f2', padding: '7px 12px', borderRadius: 8, border: '1px solid #fecaca' }}>
+                                        ⚠️ {aiError}
+                                    </div>
+                                )}
+                                <textarea
+                                    name="description"
+                                    placeholder="Write a short description, or click ✨ Generate AI Summary to auto-fill…"
+                                    value={form.description}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        border: '1.5px solid #e5e7eb',
+                                        borderRadius: 12,
+                                        fontSize: 13.5,
+                                        fontFamily: 'Inter, sans-serif',
+                                        color: '#374151',
+                                        resize: 'vertical',
+                                        outline: 'none',
+                                        background: '#fcfcff',
+                                        lineHeight: 1.6,
+                                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                                    }}
+                                    onFocus={e => { e.target.style.borderColor = '#6366f1'; e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'; }}
+                                    onBlur={e  => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                                />
+                                {form.description && (
+                                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, textAlign: 'right' }}>
+                                        {form.description.length} characters
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Image Upload */}
                             <div className="form-group full-width">
                                 <label>Book Cover Image</label>
@@ -233,9 +341,7 @@ export default function Addbook() {
                                                 className="remove-file-btn"
                                                 onClick={removeImage}
                                                 title="Remove image"
-                                            >
-                                                ✕
-                                            </button>
+                                            >✕</button>
                                         </div>
                                     ) : (
                                         <>
@@ -282,6 +388,12 @@ export default function Addbook() {
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 }
