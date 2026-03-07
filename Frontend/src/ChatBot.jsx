@@ -118,7 +118,7 @@ export default function ChatBot() {
             },
             body: JSON.stringify({
               message: text,
-              history: buildHistory(next),
+              history: buildHistory(prev),
             }),
           });
           const data = await res.json();

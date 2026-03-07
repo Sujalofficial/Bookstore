@@ -156,7 +156,11 @@ export default function Userhome() {
     }
   };
 
-  const openAiModal = async (book) => {
+  const openAiModal = async (book, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setAiModal(book);
     setAiSummary("");
     setAiLoading(true);
@@ -164,12 +168,13 @@ export default function Userhome() {
       const res = await fetch(`${API_URL}/api/ai-summary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: book.title, author: book.author }),
+        body: JSON.stringify({ title: book.title || "Unknown", author: book.author || "Unknown" }),
       });
       const data = await res.json();
       setAiSummary(res.ok ? data.summary : (data.error || "AI unavailable. Try again."));
-    } catch {
-      setAiSummary("Could not reach the server.");
+    } catch (err) {
+      console.error("AI Summary fetch error:", err);
+      setAiSummary("Could not reach the server or request was blocked.");
     } finally {
       setAiLoading(false);
     }
@@ -401,7 +406,7 @@ export default function Userhome() {
                             onError={e => { e.target.src = "https://via.placeholder.com/260x360?text=Cover"; }}
                           />
                           <div className="uh-overlay">
-                            <button className="uh-btn uh-btn-glass" onClick={() => openAiModal(book)}>
+                            <button className="uh-btn uh-btn-glass" onClick={(e) => openAiModal(book, e)}>
                               <StarIcon className="icon-sm" /> AI Summary
                             </button>
                           </div>
