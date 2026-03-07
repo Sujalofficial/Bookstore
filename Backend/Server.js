@@ -440,7 +440,7 @@ app.post('/api/ai-summary', async (req, res) => {
 });
 
 // AI Business Insights (Admin Dashboard)
-app.get('/api/ai-insights', verifyToken, async (req, res) => {
+app.get('/api/ai-insights', verifyAdmin, async (req, res) => {
     try {
         // Build context from live store data
         const [books, orders] = await Promise.all([
