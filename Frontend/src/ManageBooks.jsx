@@ -1,72 +1,46 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./ManageBooks.css";
-import "./Admin.css";
+import AdminLayout from "./AdminLayout";
 import API_URL from "./config";
 
-// ─── Confirm Dialog Component ───
-function ConfirmDialog({ message, onConfirm, onCancel }) {
-  return (
-    <div className="ap-confirm-backdrop">
-      <div className="ap-confirm-modal">
-        <div className="ap-confirm-icon">🗑️</div>
-        <h3>Are you sure?</h3>
-        <p>{message}</p>
-        <div className="ap-confirm-actions">
-          <button
-            className="ap-btn subtle"
-            style={{ minWidth: 90 }}
-            onClick={onCancel}
-          >Cancel</button>
-          <button
-            className="ap-btn danger"
-            style={{ minWidth: 90, background: '#dc2626', color: '#fff' }}
-            onClick={onConfirm}
-          >Yes, Delete</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Premium SVG Icons
+const Icons = {
+  Edit: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  ),
+  Delete: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+  ),
+  Add: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  )
+};
 
 export default function ManageBooks() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [confirmDialog, setConfirmDialog] = useState(null); // { id, title }
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const navigate = useNavigate();
 
-  // ── Edit Stock Modal State ──
-  const [editModal, setEditModal] = useState(null); // { book } or null
+  const [editModal, setEditModal] = useState(null);
   const [newQty, setNewQty] = useState("");
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
 
-  // 1. Fetch Books
-  useEffect(() => {
-    fetchBooks();
-  }, []);
+  useEffect(() => { fetchBooks(); }, []);
 
   const fetchBooks = async () => {
     try {
       const res = await fetch(`${API_URL}/api/books`);
       const data = await res.json();
       setBooks(data);
-    } catch (err) {
-      console.error("Error fetching books");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  // 2. Delete Book
-  const handleDelete = async (id, title) => {
-    setConfirmDialog({ id, title });
-  };
-
-  const confirmDeleteBook = async () => {
-    const { id, title } = confirmDialog;
-    setConfirmDialog(null);
+  const handleDelete = async () => {
+    if (!confirmDialog) return;
+    const { id } = confirmDialog;
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_URL}/api/books/${id}`, {
@@ -75,258 +49,160 @@ export default function ManageBooks() {
       });
       if (res.ok) {
         setBooks(books.filter((book) => book._id !== id));
-        showToast("✅ Deleted", `"${title}" removed from inventory.`, "success");
-      } else {
-        showToast("❌ Error", "Failed to delete book.", "error");
+        setConfirmDialog(null);
       }
-    } catch (err) {
-      showToast("❌ Error", "Server error.", "error");
-    }
+    } catch (err) { console.error(err); }
   };
 
-  // 3. Open Edit Stock Modal
-  const openEditModal = (book) => {
-    setEditModal(book);
-    setNewQty(String(book.quantity));
-  };
-
-  // 4. Save Stock
   const handleSaveStock = async () => {
-    if (newQty === "" || isNaN(newQty) || parseInt(newQty) < 0) {
-      showToast("⚠️ Invalid", "Please enter a valid quantity (0 or more).", "error");
-      return;
-    }
     const token = localStorage.getItem("token");
     setSaving(true);
     try {
       const res = await fetch(`${API_URL}/api/books/${editModal._id}/stock`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ quantity: parseInt(newQty) }),
       });
-      const data = await res.json();
       if (res.ok) {
-        // Optimistic update — reflect new qty instantly in table
-        setBooks((prev) =>
-          prev.map((b) =>
-            b._id === editModal._id ? { ...b, quantity: parseInt(newQty) } : b
-          )
-        );
+        setBooks(prev => prev.map(b => b._id === editModal._id ? { ...b, quantity: parseInt(newQty) } : b));
         setEditModal(null);
-        showToast("✅ Stock Updated!", `"${data.book.title}" → ${newQty} copies.`, "success");
-      } else {
-        showToast("❌ Failed", data.error || "Could not update stock.", "error");
       }
-    } catch (err) {
-      showToast("❌ Error", "Server error. Try again.", "error");
-    } finally {
-      setSaving(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
   };
 
-  // Toast helper
-  const showToast = (title, sub, type) => {
-    setToast({ title, sub, type });
-    setTimeout(() => setToast(null), 3200);
-  };
-
-  // Stock badge helper — 3-tier smart alerts
-  const getStockBadge = (qty) => {
-    if (qty <= 0)   return { label: "Out of Stock",           bg: "#fdecea", color: "#c62828", border: "#fca5a5" };
-    if (qty <= 4)   return { label: `🔴 Critical — ${qty} left`, bg: "#fff1f2", color: "#dc2626", border: "#fecaca" };
-    if (qty <= 9)   return { label: `🟡 Low — ${qty} left`,     bg: "#fffbeb", color: "#d97706", border: "#fde68a" };
-    return          { label: `✅ ${qty} in stock`,              bg: "#ecfdf5", color: "#059669", border: "#a7f3d0" };
-  };
-
-  // Search Filter
   const filteredBooks = books.filter((book) =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div className="loading-screen">Loading Inventory...</div>;
-
   return (
-    <div className="inventory-container">
+    <AdminLayout
+      title="Inventory"
+      subtitle={`${books.length} titles in stock`}
+      onRefresh={fetchBooks}
+    >
+      <div className="animate-fade-in">
+        <div className="ap-card">
+          <div className="ap-card-header">
+            <div className="ap-card-title">Product List</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <input 
+                className="ap-search-input" 
+                placeholder="Search inventory..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+              <button className="ap-btn primary" onClick={() => navigate("/add-book")}>
+                <Icons.Add /> Add Book
+              </button>
+            </div>
+          </div>
 
-      {/* Header */}
-      <div className="page-header">
-        <div>
-          <h2>📚 Manage Inventory</h2>
-          <p>Total Books: {books.length} &nbsp;|&nbsp; Out of Stock: {books.filter(b => b.quantity <= 0).length}</p>
-        </div>
-        <div className="header-actions">
-          <button className="add-btn" onClick={() => navigate("/add-book")}>+ Add New Book</button>
-          <button className="back-btn" onClick={() => navigate("/dashboard")}>⬅ Dashboard</button>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="🔍 Search by book title..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Table */}
-      <div className="table-card">
-        <table className="inventory-table">
-          <thead>
-            <tr>
-              <th>Cover</th>
-              <th>Book Details</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredBooks.length > 0 ? (
-              filteredBooks.map((book) => {
-                const badge = getStockBadge(book.quantity);
-                return (
+          <div className="ap-table-wrap">
+            <table className="ap-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBooks.map(book => (
                   <tr key={book._id}>
                     <td>
-                      <img
-                        src={`${API_URL}${book.image}`}
-                        alt="cover"
-                        className="book-thumb"
-                        onError={(e) => (e.target.src = "https://via.placeholder.com/50")}
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <img 
+                          src={`${API_URL}${book.image}`} 
+                          alt="" 
+                          style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }}
+                          onError={e => e.target.src = 'https://via.placeholder.com/40'}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{book.title}</div>
+                          <div style={{ fontSize: 12, color: '#888' }}>{book.author}</div>
+                        </div>
+                      </div>
                     </td>
+                    <td><span className="ap-badge">{book.category}</span></td>
+                    <td style={{ fontWeight: 700 }}>₹{book.price}</td>
                     <td>
-                      <div className="book-title">{book.title}</div>
-                      <div className="book-author">by {book.author}</div>
-                    </td>
-                    <td><span className="cat-badge">{book.category}</span></td>
-                    <td className="price-text">₹{book.price}</td>
-                    <td>
-                      <span className="stock-badge" style={{ background: badge.bg, color: badge.color }}>
-                        {badge.label}
+                      <span className={`ap-badge ${book.quantity <= 0 ? 'cancelled' : book.quantity <= 5 ? 'pending' : 'delivered'}`}>
+                        {book.quantity} in stock
                       </span>
                     </td>
-                    <td>
-                      <div className="action-btns">
-                        <button
-                          className="edit-stock-btn"
-                          onClick={() => openEditModal(book)}
-                          title="Edit Stock"
-                        >
-                          ✏️ Edit Stock
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button className="ap-icon-btn" title="Edit Stock" onClick={() => { setEditModal(book); setNewQty(book.quantity); }}>
+                          <Icons.Edit />
                         </button>
-                        <button
-                          className="delete-action-btn"
-                          onClick={() => handleDelete(book._id, book.title)}
-                          title="Delete Book"
-                        >
-                          🗑️ Delete
+                        <button className="ap-icon-btn" style={{ color: '#ff4d4f' }} onClick={() => setConfirmDialog({ id: book._id, title: book.title })}>
+                          <Icons.Delete />
                         </button>
                       </div>
                     </td>
                   </tr>
-                );
-              })
-            ) : (
-              <tr><td colSpan="6" className="no-data">No books found.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── EDIT STOCK MODAL ── */}
-      {editModal && (
-        <div className="modal-backdrop" onClick={() => setEditModal(null)}>
-          <div className="stock-modal" onClick={(e) => e.stopPropagation()}>
-            
-            <div className="modal-top">
-              <div className="modal-book-info">
-                <img
-                  src={`${API_URL}${editModal.image}`}
-                  alt="cover"
-                  className="modal-thumb"
-                  onError={(e) => (e.target.src = "https://via.placeholder.com/60")}
-                />
-                <div>
-                  <h3>{editModal.title}</h3>
-                  <p>by {editModal.author}</p>
-                </div>
-              </div>
-              <button className="modal-close" onClick={() => setEditModal(null)}>✕</button>
-            </div>
-
-            <div className="modal-current-stock">
-              <span>Current Stock:</span>
-              <span
-                className="stock-badge"
-                style={{
-                  ...(() => {
-                    const b = getStockBadge(editModal.quantity);
-                    return { background: b.bg, color: b.color };
-                  })(),
-                }}
-              >
-                {getStockBadge(editModal.quantity).label}
-              </span>
-            </div>
-
-            <label className="qty-label">Set New Quantity</label>
-            <div className="qty-input-row">
-              <button
-                className="qty-stepper"
-                onClick={() => setNewQty((v) => String(Math.max(0, parseInt(v || 0) - 1)))}
-                disabled={saving}
-              >−</button>
-              <input
-                type="number"
-                className="qty-input"
-                value={newQty}
-                min="0"
-                onChange={(e) => setNewQty(e.target.value)}
-                disabled={saving}
-              />
-              <button
-                className="qty-stepper"
-                onClick={() => setNewQty((v) => String(parseInt(v || 0) + 1))}
-                disabled={saving}
-              >+</button>
-            </div>
-
-            <div className="modal-actions">
-              <button className="cancel-modal-btn" onClick={() => setEditModal(null)} disabled={saving}>
-                Cancel
-              </button>
-              <button className="save-stock-btn" onClick={handleSaveStock} disabled={saving}>
-                {saving ? <><span className="btn-spin" /> Saving…</> : "💾 Save Stock"}
-              </button>
-            </div>
-
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+      </div>
+
+      {/* Stock Edit Modal */}
+      {editModal && (
+        <>
+          <div className="ap-drawer-backdrop" onClick={() => setEditModal(null)} />
+          <div className="ap-modal">
+            <div className="ap-card-header">
+              <div className="ap-card-title">Update Stock</div>
+              <button className="ap-icon-btn" onClick={() => setEditModal(null)}>✕</button>
+            </div>
+            <div className="ap-card-body" style={{ padding: 24 }}>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontWeight: 600 }}>{editModal.title}</div>
+                <div style={{ fontSize: 13, color: '#888' }}>Currently {editModal.quantity} units</div>
+              </div>
+              <div className="ap-form-group">
+                <label className="ap-label">New Quantity</label>
+                <input 
+                  type="number" 
+                  className="ap-input" 
+                  value={newQty}
+                  onChange={e => setNewQty(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                <button className="ap-btn outline" style={{ flex: 1 }} onClick={() => setEditModal(null)}>Cancel</button>
+                <button className="ap-btn primary" style={{ flex: 1 }} onClick={handleSaveStock} disabled={saving}>
+                  {saving ? 'Saving...' : 'Update'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* ── TOAST ── */}
-      {toast && (
-        <div className={`manage-toast ${toast.type}`}>
-          <span>{toast.title}</span>
-          <span className="toast-sub">{toast.sub}</span>
-        </div>
-      )}
-
-      {/* ── CONFIRM DIALOG ── */}
+      {/* Delete Confirm */}
       {confirmDialog && (
-        <ConfirmDialog
-          message={`Remove "${confirmDialog.title}" from inventory? This action cannot be undone.`}
-          onConfirm={confirmDeleteBook}
-          onCancel={() => setConfirmDialog(null)}
-        />
+        <>
+          <div className="ap-drawer-backdrop" onClick={() => setConfirmDialog(null)} />
+          <div className="ap-modal" style={{ maxWidth: 400 }}>
+            <div className="ap-card-body" style={{ padding: 32, textAlign: 'center' }}>
+              <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+              <h3 style={{ marginBottom: 8 }}>Delete Book?</h3>
+              <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>Are you sure you want to remove <b>{confirmDialog.title}</b>? This action cannot be undone.</p>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button className="ap-btn outline" style={{ flex: 1 }} onClick={() => setConfirmDialog(null)}>Cancel</button>
+                <button className="ap-btn primary" style={{ flex: 1, background: '#ff4d4f' }} onClick={handleDelete}>Delete</button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
-
-    </div>
+    </AdminLayout>
   );
 }

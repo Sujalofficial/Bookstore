@@ -1,10 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AdminLayout from './AdminLayout';
 import API_URL from './config';
 
-const INSIGHT_ICONS = ['📈', '⚠️', '🔥', '💡', '📦', '🎯'];
+// Premium SVG Icons for Dashboard
+const Icons = {
+  Revenue: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/><path d="M2 12h20"/><path d="m5 7 3 5-3 5"/><path d="m19 7-3 5 3 5"/></svg>
+  ),
+  Orders: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+  ),
+  Users: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  ),
+  Books: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+  ),
+  Alert: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  ),
+  Add: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+  )
+};
 
 export default function Admindashboard() {
   const navigate      = useNavigate();
@@ -14,7 +34,6 @@ export default function Admindashboard() {
   const [chartType,  setChartType]  = useState('revenue');
 
   // AI Insights state
-  const [aiInsights,     setAiInsights]     = useState(null);
   const [aiInsightLines, setAiInsightLines] = useState([]);
   const [aiLoading,      setAiLoading]      = useState(false);
   const [aiError,        setAiError]        = useState('');
@@ -24,7 +43,7 @@ export default function Admindashboard() {
     const user  = JSON.parse(localStorage.getItem('adminUser') || 'null');
     if (!token || !user?.isAdmin) { navigate('/adminlogin'); return; }
     fetchStats();
-  }, []);
+  }, [navigate]);
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -46,200 +65,118 @@ export default function Admindashboard() {
       const res  = await fetch(`${API_URL}/api/ai-insights`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok && data.insights) {
-        // Parse bullet lines from the response
-        const lines = data.insights
-          .split('\n')
-          .map(l => l.replace(/^[\*\-•]\s*/, '').trim())
-          .filter(l => l.length > 10)
-          .slice(0, 5);
+        const lines = data.insights.split('\n').map(l => l.replace(/^[\*\-•]\s*/, '').trim()).filter(l => l.length > 5).slice(0, 4);
         setAiInsightLines(lines);
-        setAiInsights(data.insights);
-      } else {
-        setAiError(data.error || 'AI service unavailable. Try again.');
-      }
-    } catch {
-      setAiError('Could not reach server. Check your connection.');
-    } finally {
-      setAiLoading(false);
-    }
+      } else setAiError(data.error || 'AI service unavailable.');
+    } catch { setAiError('Could not reach server.'); }
+    finally { setAiLoading(false); }
   };
 
-  const STAT_CARDS = stats ? [
-    { label: 'Total Revenue',    value: `₹${stats.totalRevenue.toLocaleString('en-IN')}`, icon: '💰', cls: 'green',  sub: 'All time'                             },
-    { label: 'Total Orders',     value: stats.totalOrders,    icon: '📦', cls: 'blue',   sub: `${stats.pendingOrders} pending`             },
-    { label: 'Registered Users', value: stats.totalUsers,     icon: '👥', cls: 'purple', sub: 'Customers'                                  },
-    { label: 'Total Books',      value: stats.totalBooks,     icon: '📚', cls: 'indigo', sub: `${stats.outOfStock} out of stock`            },
-    { label: 'Low Stock Alert',  value: stats.lowStockBooks,  icon: '⚠️', cls: 'amber',  sub: '≤ 5 copies left'                            },
-    { label: 'Out of Stock',     value: stats.outOfStock,     icon: '❌', cls: 'red',    sub: 'Need restocking'                            },
+  const STATS = stats ? [
+    { label: 'Revenue',    value: `₹${stats.totalRevenue.toLocaleString()}`, icon: <Icons.Revenue />, sub: 'All time', cls: 'up' },
+    { label: 'Orders',     value: stats.totalOrders,    icon: <Icons.Orders />,  sub: `${stats.pendingOrders} pending`, cls: 'up' },
+    { label: 'Users',      value: stats.totalUsers,     icon: <Icons.Users />,   sub: 'Customers', cls: 'up' },
+    { label: 'Inventory',  value: stats.totalBooks,     icon: <Icons.Books />,   sub: `${stats.outOfStock} out of stock`, cls: 'down' },
   ] : [];
-
-  const QUICK_ACTIONS = [
-    { icon: '📦', label: 'Manage Orders', path: '/admin/orders', desc: 'Update statuses' },
-    { icon: '📚', label: 'Inventory',     path: '/manage-books', desc: 'Edit stock & books' },
-    { icon: '➕', label: 'Add Book',      path: '/add-book',     desc: 'List a new title'  },
-    { icon: '👥', label: 'Users',         path: '/users',        desc: 'Manage customers'  },
-  ];
-
-  const customTooltipStyle = {
-    borderRadius: 12,
-    border: 'none',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-    fontFamily: 'Inter, sans-serif',
-    fontSize: 13,
-  };
 
   return (
     <AdminLayout
       title="Dashboard"
-      subtitle="Real-time overview of your store"
+      subtitle="Overview of your store performance"
       onRefresh={() => fetchStats(true)}
       refreshing={refreshing}
     >
       {loading ? (
-        /* Skeleton loaders */
-        <>
-          <div className="ap-skel-grid">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="ap-skel-card" />)}
-          </div>
-          <div className="ap-skel-card" style={{ height: 320, borderRadius: 18, marginBottom: 20 }} />
-        </>
+        <div className="ap-skel-grid">
+          {[1,2,3,4].map(i => <div key={i} className="ap-skel-card" />)}
+        </div>
       ) : stats ? (
-        <>
-          {/* Low stock alert */}
-          {stats.lowStockBooks > 0 && (
-            <div className="ap-alert-strip">
-              ⚠️ {stats.lowStockBooks} book{stats.lowStockBooks > 1 ? 's are' : ' is'} running low on stock.
-              <button
-                className="ap-btn subtle"
-                style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: 12 }}
-                onClick={() => navigate('/manage-books')}
-              >View Inventory →</button>
-            </div>
-          )}
-
-          {/* Stat Cards */}
+        <div className="animate-fade-in">
+          {/* Stats Grid */}
           <div className="ap-stats-grid">
-            {STAT_CARDS.map(c => (
-              <div className={`ap-stat-card ${c.cls}`} key={c.label}>
-                <div className={`ap-stat-icon ${c.cls}`}>{c.icon}</div>
-                <div>
-                  <div className="ap-stat-label">{c.label}</div>
-                  <div className="ap-stat-value">{c.value}</div>
-                  <div className="ap-stat-sub">{c.sub}</div>
+            {STATS.map(s => (
+              <div key={s.label} className="ap-stat-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div className="ap-stat-label">{s.label}</div>
+                  <div style={{ color: '#000' }}>{s.icon}</div>
                 </div>
+                <div className="ap-stat-value">{s.value}</div>
+                <div className={`ap-stat-sub ${s.cls}`}>{s.sub}</div>
               </div>
             ))}
           </div>
 
-          {/* Chart */}
-          <div className="ap-card">
-            <div className="ap-card-header">
-              <span className="ap-card-title">📈 Last 7 Days Performance</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className={`ap-btn ${chartType === 'revenue' ? 'primary' : 'subtle'}`} onClick={() => setChartType('revenue')}>Revenue</button>
-                <button className={`ap-btn ${chartType === 'orders'  ? 'primary' : 'subtle'}`} onClick={() => setChartType('orders')}>Orders</button>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 32 }}>
+            {/* Chart Container */}
+            <div className="ap-card">
+              <div className="ap-card-header">
+                <div className="ap-card-title">Analytics</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className={`ap-btn ${chartType === 'revenue' ? 'primary' : 'outline'}`} style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setChartType('revenue')}>Revenue</button>
+                  <button className={`ap-btn ${chartType === 'orders' ? 'primary' : 'outline'}`} style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setChartType('orders')}>Orders</button>
+                </div>
               </div>
-            </div>
-            <div className="ap-chart-wrap" style={{ height: 280 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                {chartType === 'revenue' ? (
+              <div className="ap-card-body" style={{ height: 320 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={stats.salesChart}>
                     <defs>
-                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.18} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}    />
+                      <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#000" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#000" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                    <XAxis dataKey="date"    stroke="#9ca3af" fontSize={12} />
-                    <YAxis                   stroke="#9ca3af" fontSize={12} />
-                    <Tooltip formatter={(v) => [`₹${v}`, 'Revenue']} contentStyle={customTooltipStyle} />
-                    <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} fill="url(#revGrad)" dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888' }} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
+                      itemStyle={{ fontSize: 12, fontWeight: 600 }}
+                    />
+                    <Area type="monotone" dataKey={chartType} stroke="#000" strokeWidth={2} fillOpacity={1} fill="url(#colorVal)" />
                   </AreaChart>
-                ) : (
-                  <LineChart data={stats.salesChart}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f5" />
-                    <XAxis dataKey="date"     stroke="#9ca3af" fontSize={12} />
-                    <YAxis                    stroke="#9ca3af" fontSize={12} allowDecimals={false} />
-                    <Tooltip formatter={(v) => [v, 'Orders']} contentStyle={customTooltipStyle} />
-                    <Line type="monotone" dataKey="orders" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: '#6366f1', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                )}
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="ap-card">
-            <div className="ap-card-header"><span className="ap-card-title">⚡ Quick Actions</span></div>
-            <div style={{ padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
-              {QUICK_ACTIONS.map(a => (
-                <div
-                  key={a.path}
-                  onClick={() => navigate(a.path)}
-                  style={{
-                    background: '#f9fafb', borderRadius: 14, padding: '18px 16px',
-                    cursor: 'pointer', border: '1.5px solid #eef0f6',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#f0efff'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseOut={e  => { e.currentTarget.style.borderColor = '#eef0f6'; e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.transform = 'none'; }}
-                >
-                  <div style={{ fontSize: 26, marginBottom: 10 }}>{a.icon}</div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1e1b4b', marginBottom: 3 }}>{a.label}</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>{a.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Business Insights */}
-          <div className="ap-ai-card">
-            <div className="ap-ai-header">
-              <div className="ap-ai-title">
-                ✨ AI Business Insights
-                <span className="ap-ai-badge">Gemini 2.5</span>
+                </ResponsiveContainer>
               </div>
-              <button
-                className="ap-btn ai"
-                onClick={generateAiInsights}
-                disabled={aiLoading}
-                style={{ fontSize: 12 }}
-              >
-                {aiLoading ? (
-                  <><div className="ap-spinner" style={{ width: 14, height: 14, borderWidth: 2, margin: 0 }} /> Analysing…</>
-                ) : (
-                  '✨ Generate Insights'
-                )}
+            </div>
+
+            {/* Quick Actions / Activity */}
+            <div className="ap-card">
+              <div className="ap-card-header"><div className="ap-card-title">Quick Actions</div></div>
+              <div className="ap-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <button className="ap-btn outline" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/add-book')}><Icons.Add /> Add New Book</button>
+                <button className="ap-btn outline" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/admin/orders')}><Icons.Orders /> Manage Orders</button>
+                <button className="ap-btn outline" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/manage-books')}><Icons.Inventory /> Check Inventory</button>
+                <button className="ap-btn outline" style={{ justifyContent: 'flex-start' }} onClick={() => navigate('/users')}><Icons.Users /> Customer List</button>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Insights */}
+          <div className="ap-card" style={{ border: '1px solid #000', background: '#000', color: '#fff' }}>
+            <div className="ap-card-header" style={{ borderBottomColor: '#333' }}>
+              <div className="ap-card-title" style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                ✨ Smart Analysis
+                <span style={{ fontSize: 10, padding: '2px 6px', background: '#333', borderRadius: 4 }}>Gemini Engine</span>
+              </div>
+              <button className="ap-btn outline" style={{ background: '#fff', color: '#000', fontSize: 12, padding: '4px 12px' }} onClick={generateAiInsights} disabled={aiLoading}>
+                {aiLoading ? 'Analysing...' : 'Generate Insights'}
               </button>
             </div>
-            <div className="ap-ai-body">
-              {aiError && (
-                <div style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
-                  {aiError}
-                </div>
-              )}
-              {!aiInsightLines.length && !aiLoading && !aiError && (
-                <div className="ap-ai-empty">
-                  Click "Generate Insights" to get AI-powered analysis of your store's performance and inventory.
-                </div>
-              )}
-              {aiInsightLines.map((line, i) => (
-                <div key={i} className="ap-insight-item" style={{ animationDelay: `${i * 0.07}s` }}>
-                  <span className="ap-insight-icon">{INSIGHT_ICONS[i % INSIGHT_ICONS.length]}</span>
-                  <span className="ap-insight-text">{line}</span>
-                </div>
-              ))}
+            <div className="ap-card-body">
+              {aiError && <div style={{ color: '#ff8a8a', fontSize: 13 }}>{aiError}</div>}
+              {!aiInsightLines.length && !aiLoading && <div style={{ color: '#888', fontSize: 13 }}>Click to get AI-powered store optimization tips.</div>}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {aiInsightLines.map((line, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0070f3' }} />
+                    <div style={{ fontSize: 14 }}>{line}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-        </>
-      ) : (
-        <div className="ap-empty">
-          <div className="ap-empty-icon">⚠️</div>
-          <h3>Could not load stats</h3>
-          <p>Check your connection and refresh.</p>
         </div>
+      ) : (
+        <div className="ap-empty"><h3>Data unavailable</h3></div>
       )}
     </AdminLayout>
   );
