@@ -13,14 +13,31 @@ const app = express();
 // ==========================================
 // ⚙️ CONFIGURATION (Atlas & Production Ready)
 // ==========================================
-app.use(express.json());
-app.use(cors()); 
+app.use(express.json({ limit: '10kb' })); // Guard against oversized payloads
+
+// ── CORS: restrict to known frontend origin in production ──
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || '*';
+app.use(cors({
+    origin: ALLOWED_ORIGIN,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Variables from .env
 const PORT = process.env.PORT || 5000;
-const MY_SECRET_KEY = process.env.MY_SECRET_KEY || "#Sujal7777"; 
-const MONGO_URI = process.env.MONGO_URI; 
+const MONGO_URI = process.env.MONGO_URI;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// ── Critical env var guards: fail fast at startup, not at runtime ──
+if (!process.env.MY_SECRET_KEY) {
+    console.error('❌ FATAL: MY_SECRET_KEY environment variable is not set. Server will not start securely.');
+    process.exit(1);
+}
+const MY_SECRET_KEY = process.env.MY_SECRET_KEY;
+
+if (!GEMINI_API_KEY) {
+    console.warn('⚠️  WARNING: GEMINI_API_KEY is not set. All AI features will be disabled.');
+}
 
 // ==========================================
 // 1. CONNECT DB (MongoDB Atlas)
@@ -154,11 +171,17 @@ app.post('/login', async (req, res) => {
 // ==========================================
 
 app.get('/api/books', async (req, res) => {
-    const books = await Book.find().sort({ createdAt: -1 });
-    res.json(books);
+    try {
+        const books = await Book.find().sort({ createdAt: -1 }).lean();
+        res.json(books);
+    } catch (e) {
+        console.error('Fetch books error:', e.message);
+        res.status(500).json({ error: 'Failed to fetch books' });
+    }
 });
 
-app.post('/api/books', upload.single('image'), async (req, res) => {
+// FIX: Added verifyAdmin — previously any unauthenticated user could POST new books
+app.post('/api/books', verifyAdmin, upload.single('image'), async (req, res) => {
     try {
         const bookData = { 
             ...req.body, 
@@ -235,8 +258,13 @@ app.delete('/api/cart/:id', verifyUser, async (req, res) => {
 });
 
 app.get('/api/cart/items', verifyUser, async (req, res) => {
-    const items = await Cart.find({ userId: req.user.userId });
-    res.json(items);
+    try {
+        const items = await Cart.find({ userId: req.user.userId }).lean();
+        res.json(items);
+    } catch (e) {
+        console.error('Fetch cart error:', e.message);
+        res.status(500).json({ error: 'Failed to fetch cart' });
+    }
 });
 
 // ==========================================
@@ -244,19 +272,28 @@ app.get('/api/cart/items', verifyUser, async (req, res) => {
 // ==========================================
 
 app.post('/api/orders/checkout', verifyUser, async (req, res) => {
-    const cartItems = await Cart.find({ userId: req.user.userId });
-    if (!cartItems.length) return res.status(400).json("Cart empty");
-    
-    const total = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const order = await Order.create({
-        userId: req.user.userId,
-        customerName: req.body.customerName,
-        books: cartItems,
-        totalAmount: total,
-        address: req.body.address
-    });
-    await Cart.deleteMany({ userId: req.user.userId });
-    res.status(201).json(order);
+    try {
+        const { customerName, address } = req.body || {};
+        if (!customerName?.trim() || !address?.trim()) {
+            return res.status(400).json({ error: 'Customer name and delivery address are required.' });
+        }
+        const cartItems = await Cart.find({ userId: req.user.userId }).lean();
+        if (!cartItems.length) return res.status(400).json({ error: 'Your cart is empty.' });
+
+        const total = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        const order = await Order.create({
+            userId: req.user.userId,
+            customerName: customerName.trim(),
+            books: cartItems,
+            totalAmount: total,
+            address: address.trim()
+        });
+        await Cart.deleteMany({ userId: req.user.userId });
+        res.status(201).json(order);
+    } catch (e) {
+        console.error('Checkout error:', e.message);
+        res.status(500).json({ error: 'Checkout failed. Please try again.' });
+    }
 });
 
 // Get logged-in user's own orders
@@ -439,8 +476,17 @@ app.post('/api/ai-summary', async (req, res) => {
     }
 });
 
+// ── In-memory cache for AI Insights (10 minutes) to prevent quota burn on rapid refreshes ──
+let insightsCache = null;
+let insightsCacheTime = 0;
+const INSIGHTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes in ms
+
 // AI Business Insights (Admin Dashboard)
 app.get('/api/ai-insights', verifyAdmin, async (req, res) => {
+    // Serve from cache if fresh
+    if (insightsCache && (Date.now() - insightsCacheTime) < INSIGHTS_CACHE_TTL) {
+        return res.status(200).json({ insights: insightsCache, cached: true });
+    }
     try {
         // Build context from live store data
         const [books, orders] = await Promise.all([
@@ -485,7 +531,10 @@ Generate 4 specific, actionable insights for this bookstore admin.`;
             return res.status(503).json({ error: 'AI service temporarily unavailable.' });
         }
 
-        return res.status(200).json({ insights });
+        // Store in cache before responding
+        insightsCache = insights;
+        insightsCacheTime = Date.now();
+        return res.status(200).json({ insights, cached: false });
     } catch (err) {
         console.error('AI Insights Error:', err.message || err);
         return res.status(500).json({ error: 'Failed to generate insights.' });
@@ -622,10 +671,12 @@ ${inventoryContext}${ordersContext}
 
     } catch (err) {
         const msg = err.message || '';
+        console.error('Chatbot error:', msg.split('\n')[0]); // Log internally, never expose to client
         if (msg.includes('429') || msg.includes('quota') || msg.includes('Too Many Requests')) {
             return res.json({ reply: '⚠️ AI quota exceeded for today. The free-tier daily limit has been reached. Please try again tomorrow!' });
         }
-        res.status(500).json({ reply: "Sorry, I'm having a little trouble right now. Please try again in a moment! 😅 Error details: " + msg });
+        // FIX: No longer leaking internal err.message to the client
+        res.status(500).json({ reply: "Sorry, I'm having a little trouble right now. Please try again in a moment! 😊" });
     }
 });
 
