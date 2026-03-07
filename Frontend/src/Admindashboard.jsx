@@ -21,6 +21,9 @@ const Icons = {
   Alert: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
   ),
+  Inventory: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+  ),
   Add: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
   )
@@ -116,8 +119,8 @@ export default function Admindashboard() {
                   <button className={`ap-btn ${chartType === 'orders' ? 'primary' : 'outline'}`} style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setChartType('orders')}>Orders</button>
                 </div>
               </div>
-              <div className="ap-card-body" style={{ height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="ap-card-body" style={{ height: 320, minHeight: 320, position: 'relative', overflow: 'hidden' }}>
+                <ResponsiveContainer width="99%" height="100%">
                   <AreaChart data={stats.salesChart}>
                     <defs>
                       <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">

@@ -177,7 +177,7 @@ export default function AdminOrders() {
             <div className="ap-drawer-header">
               <div>
                 <div className="ap-page-title">Order #{selectedOrder._id.slice(-6).toUpperCase()}</div>
-                <div className="ap-page-subtitle">{new Date(selectedOrder.orderedAt).toLocaleLongDateString || new Date(selectedOrder.orderedAt).toDateString()}</div>
+                <div className="ap-page-subtitle">{new Date(selectedOrder.orderedAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
               </div>
               <button className="ap-icon-btn" onClick={() => setSelectedOrder(null)}>✕</button>
             </div>
