@@ -396,16 +396,46 @@ const fetchGemini = async (prompt) => {
 // AI Book Summary
 app.post('/api/ai-summary', async (req, res) => {
     try {
-        const { title, author } = req.body;
-        if (!title || !author) return res.status(400).json({ error: 'Title and author are required' });
-        const prompt = `Summarize the book "${title}" by ${author} in exactly 60 words. Be professional, engaging, and highlight what makes it special.`;
+        // 1. Safe destructuring and default fallback to prevent 'undefined' crashes
+        const { title = '', author = '' } = req.body || {};
+
+        // 2. Strict validation & sanitization check
+        const sanitizedTitle = title.trim();
+        const sanitizedAuthor = author.trim();
+
+        if (!sanitizedTitle || !sanitizedAuthor) {
+            return res.status(400).json({ 
+                error: 'Both book title and author are required and cannot be empty.' 
+            });
+        }
+
+        const prompt = `Summarize the book "${sanitizedTitle}" by ${sanitizedAuthor} in exactly 60 words. Be professional, engaging, and highlight what makes it special.`;
+        
+        // 3. Call the AI service
         const summary = await fetchGemini(prompt);
-        if (summary === '__QUOTA_EXCEEDED__') return res.status(429).json({ error: '⚠️ AI quota exceeded for today. Please try again tomorrow or upgrade your Gemini API plan.' });
-        if (!summary) return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again.' });
-        res.json({ summary });
+
+        // 4. Handle known failure modes & Quota Exceeded clearly
+        if (summary === '__QUOTA_EXCEEDED__') {
+            return res.status(429).json({ 
+                error: '⚠️ AI quota exceeded for today. Please try again tomorrow or upgrade your Gemini API plan.' 
+            });
+        }
+
+        if (!summary) {
+            return res.status(503).json({ 
+                error: 'AI service temporarily unavailable or failed to process the request. Please try again.' 
+            });
+        }
+
+        // 5. Success block with consistent schema matching what the frontend currently expects (it expects simple { summary })
+        return res.status(200).json({ summary: summary });
+
     } catch (err) {
-        console.error('AI Summary error:', err);
-        res.status(500).json({ error: 'Failed to generate summary' });
+        // 6. Safe and discreet internal server error catch
+        console.error('AI Summary Route Error:', err.message || err);
+        return res.status(500).json({ 
+            error: 'An unexpected internal error occurred while generating the summary.' 
+        });
     }
 });
 
