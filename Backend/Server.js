@@ -195,6 +195,7 @@ app.post('/api/books', verifyAdmin, upload.single('image'), async (req, res) => 
     try {
         const bookData = { 
             ...req.body, 
+            aiSummary: req.body.description || req.body.aiSummary,
             image: req.file ? `/uploads/${req.file.filename}` : '',
             quantity: parseInt(req.body.quantity) || 0
         };
@@ -451,11 +452,12 @@ app.post('/api/ai-summary', aiRateLimiter, async (req, res) => {
             return res.status(400).json({ error: 'Both book title and author are required.' });
         }
 
+        const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         // 1️⃣ AI SUMMARY CACHING (DATABASE LEVEL)
         // Check if we already have a summary for this book in our database
         const existingBook = await Book.findOne({ 
-            title: new RegExp(`^${sanitizedTitle}$`, 'i'), 
-            author: new RegExp(`^${sanitizedAuthor}$`, 'i') 
+            title: new RegExp(`^${escapeRegex(sanitizedTitle)}$`, 'i'), 
+            author: new RegExp(`^${escapeRegex(sanitizedAuthor)}$`, 'i') 
         });
 
         if (existingBook?.aiSummary) {

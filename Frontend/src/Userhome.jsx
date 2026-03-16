@@ -3,6 +3,29 @@ import { useNavigate } from "react-router-dom";
 import './Userhome.css';
 import API_URL from './config';
 
+// ─── Simple Markdown → HTML renderer ───
+const renderMarkdown = (text) => {
+  if (!text) return "";
+  let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+             .replace(/\*(.*?)\*/g, "<em>$1</em>")
+             .replace(/`(.*?)`/g, "<code>$1</code>");
+  const lines = html.split("\n");
+  let inList = false;
+  const result = lines.map((line) => {
+    const bullet = line.match(/^[-*•]\s+(.+)$/);
+    if (bullet) {
+      const li = `<li>${bullet[1]}</li>`;
+      if (!inList) { inList = true; return `<ul>${li}`; }
+      return li;
+    }
+    if (inList) { inList = false; return `</ul>${line}`; }
+    return line || "<br/>";
+  });
+  if (inList) result.push("</ul>");
+  return result.join("").replace(/\n/g, "");
+};
+
 // ─── ICON COMPONENTS ───
 const SearchIcon = ({ className }) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
 const BellIcon = ({ className }) => <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>;
@@ -401,7 +424,7 @@ export default function Userhome() {
                             onError={e => { e.target.src = "https://via.placeholder.com/260x360?text=Cover"; }}
                           />
                           <div className="uh-overlay">
-                            <button className="uh-btn uh-btn-glass" onClick={() => openAiModal(book)}>
+                            <button className="uh-btn uh-btn-glass" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAiModal(book); }}>
                               <StarIcon className="icon-sm" /> AI Summary
                             </button>
                           </div>
@@ -474,9 +497,7 @@ export default function Userhome() {
                   <p>Analyzing book contents...</p>
                 </div>
               ) : (
-                <div className="uh-summary-box">
-                  <p>{aiSummary}</p>
-                </div>
+                <div className="uh-summary-box" dangerouslySetInnerHTML={{ __html: renderMarkdown(aiSummary) }} />
               )}
             </div>
             

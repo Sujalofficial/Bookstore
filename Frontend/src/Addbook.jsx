@@ -47,8 +47,15 @@ export default function Addbook() {
         body: JSON.stringify({ title: form.title, author: form.author }),
       });
       const data = await res.json();
-      if (res.ok) setForm(prev => ({ ...prev, description: data.summary }));
-    } catch (err) { console.error(err); }
+      if (res.ok) {
+        setForm(prev => ({ ...prev, description: data.summary }));
+      } else {
+        alert(data.error || 'Failed to generate AI summary.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while generating summary.');
+    }
     finally { setAiGenerating(false); }
   };
 
